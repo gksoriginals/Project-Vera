@@ -1,0 +1,25 @@
+# PURPOSE
+Draft 1-3 suggested replies for the user to tap as shortcuts.
+The replies must be short, warm, and natural for the user to say.
+
+# CONTEXT (The user's current draft)
+Draft: "{{draft_reply}}"
+Conversation Context:
+{{context}}
+
+# TARGET DEFINITION (Output key: 'options')
+- options: Return 1-3 short options. Examples: "I agree.", "Can you repeat?", "Great idea!".
+
+# RULES
+- Use the user's preferred language: {{language}}.
+- Rule: Do not ask long, complex follow-up questions.
+- Goal: Make the interaction fast and effortless for the user.
+
+Final Step: Return a valid JSON object matching this schema:
+{
+  "options": ["string", "string", "string"]
+}
+
+# OUTPUT FORMAT
+GENERATE JSON. DO NOT INCLUDE ANY OTHER TEXT.
+JSON:
