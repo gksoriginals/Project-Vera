@@ -1,4 +1,4 @@
-# Project Vera
+# Project Vera (WIP)
 
 Vera is a **fully agentic live captioning and communication platform** designed to empower Deaf and Hard-of-Hearing (DHH) individuals to communicate seamlessly in real-time. Moving beyond conventional transcription, Vera acts as an intelligent intermediary—transforming live speech into highly readable, visually stable stanzas that eliminate cognitive barriers and foster natural, fluid conversation.
 
