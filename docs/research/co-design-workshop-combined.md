@@ -204,9 +204,9 @@ The report highlights multilingual difficulties, language comprehension issues, 
 
 ### Workshop Artefacts from Activity 1
 
-<img src="workshop-images/activity-1-pain-points-1.jpg" alt="Pain points and themes 1" width="32%" />
-<img src="workshop-images/activity-1-pain-points-2.jpg" alt="Pain points and themes 2" width="32%" />
-<img src="workshop-images/activity-1-pain-points-3.jpg" alt="Pain points and themes 3" width="32%" />
+![Pain points and themes 1](./workshop-images/activity-1-pain-points-1.jpg)
+![Pain points and themes 2](./workshop-images/activity-1-pain-points-2.jpg)
+![Pain points and themes 3](./workshop-images/activity-1-pain-points-3.jpg)
 
 ## 6. Activity 2: Feature Prioritisation Using MoSCoW
 
@@ -259,19 +259,19 @@ The MoSCoW activity affirmed that all features currently in vera are prioritized
 
 #### Prioritized Features Board
 
-<img src="workshop-images/activity-2-prioritized-features.jpg" alt="Prioritized features" width="48%" />
+![Prioritized features](./workshop-images/activity-2-prioritized-features.jpg)
 
 #### MoSCoW Boards
 
-<img src="workshop-images/activity-2-moscow-1.jpg" alt="MoSCoW board 1" width="32%" />
-<img src="workshop-images/activity-2-moscow-2.jpg" alt="MoSCoW board 2" width="32%" />
-<img src="workshop-images/activity-2-moscow-3.jpg" alt="MoSCoW board 3" width="32%" />
+![MoSCoW board 1](./workshop-images/activity-2-moscow-1.jpg)
+![MoSCoW board 2](./workshop-images/activity-2-moscow-2.jpg)
+![MoSCoW board 3](./workshop-images/activity-2-moscow-3.jpg)
 
-<img src="workshop-images/activity-2-moscow-4.jpg" alt="MoSCoW board 4" width="32%" />
-<img src="workshop-images/activity-2-moscow-5.jpg" alt="MoSCoW board 5" width="32%" />
-<img src="workshop-images/activity-2-moscow-must-have.jpg" alt="MoSCoW must have board" width="32%" />
+![MoSCoW board 4](./workshop-images/activity-2-moscow-4.jpg)
+![MoSCoW board 5](./workshop-images/activity-2-moscow-5.jpg)
+![MoSCoW must have board](./workshop-images/activity-2-moscow-must-have.jpg)
 
-<img src="workshop-images/activity-2-moscow-should-could-have.jpg" alt="MoSCoW should have could have board" width="48%" />
+![MoSCoW should have could have board](./workshop-images/activity-2-moscow-should-could-have.jpg)
 
 ## 7. Activity 3: Love, Break, Fix on the vera AI Prototype
 
@@ -294,15 +294,15 @@ Participants found all features in the current version of vera AI helpful. The a
 
 ### Workshop Artefacts from Activity 3
 
-<img src="workshop-images/activity-3-love-break-fix-1.jpg" alt="Love break fix 1" width="32%" />
-<img src="workshop-images/activity-3-love-break-fix-2.jpg" alt="Love break fix 2" width="32%" />
-<img src="workshop-images/activity-3-love-break-fix-3.jpg" alt="Love break fix 3" width="32%" />
+![Love break fix 1](./workshop-images/activity-3-love-break-fix-1.jpg)
+![Love break fix 2](./workshop-images/activity-3-love-break-fix-2.jpg)
+![Love break fix 3](./workshop-images/activity-3-love-break-fix-3.jpg)
 
-<img src="workshop-images/activity-3-love-break-fix-4.jpg" alt="Love break fix 4" width="32%" />
-<img src="workshop-images/activity-3-love-break-fix-5.jpg" alt="Love break fix 5" width="32%" />
-<img src="workshop-images/activity-3-love-break-fix-6.jpg" alt="Love break fix 6" width="32%" />
+![Love break fix 4](./workshop-images/activity-3-love-break-fix-4.jpg)
+![Love break fix 5](./workshop-images/activity-3-love-break-fix-5.jpg)
+![Love break fix 6](./workshop-images/activity-3-love-break-fix-6.jpg)
 
-<img src="workshop-images/activity-3-love-break-fix-7.jpg" alt="Love break fix 7" width="48%" />
+![Love break fix 7](./workshop-images/activity-3-love-break-fix-7.jpg)
 
 ## 8. Consolidated Insights Across Both Source Documents
 
