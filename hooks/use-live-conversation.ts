@@ -12,7 +12,6 @@ import {
 import {
   createLiveKitSession,
   getCurrentSession,
-  getPreferences,
   processChunk,
   routeInput,
   synthesizeSpeech
@@ -28,11 +27,11 @@ import type {
 } from "@/lib/types";
 
 const HISTORY_CHUNKS_PER_PAGE = 2;
-const AUTO_FLUSH_DEBOUNCE_MS = 500;
-const SILENCE_BUFFER_FLUSH_MS = 1000;
-const SILENCE_FORCE_FLUSH_MS = 1500;
-const CLIENT_SENTENCE_READY_MIN_WORDS = 12;
-const MIN_STOP_FLUSH_WORDS = 3;
+const AUTO_FLUSH_DEBOUNCE_MS = 800;
+const SILENCE_BUFFER_FLUSH_MS = 1400;
+const SILENCE_FORCE_FLUSH_MS = 2400;
+const CLIENT_SENTENCE_READY_MIN_WORDS = 24;
+const MIN_STOP_FLUSH_WORDS = 8;
 const CLIENT_VISUAL_PRESSURE_THRESHOLD = 0.72;
 const EMPTY_SURFACE_METRICS: LiveSurfaceMetrics = {
   occupancy: 0,
@@ -46,6 +45,10 @@ type LiveKitSegmentRecord = {
   text: string;
   final: boolean;
   firstReceivedTime: number;
+};
+
+type VeraSpeechWindow = Window & {
+  __veraActiveUtterance?: SpeechSynthesisUtterance | null;
 };
 
 function sortSegments(values: LiveKitSegmentRecord[]) {
@@ -129,15 +132,14 @@ async function waitForLayoutTick() {
 
 export type LiveConversationViewModel = {
   answer: ContextAnswer | null;
+  captionMode: "full" | "simplified";
   composerValue: string;
   connectionLabel: string;
-  expandedHistoryChunkId: string | null;
   historyPages: ConversationChunk[][];
   isBusy: boolean;
   isListening: boolean;
   keyboardInputRef: RefObject<HTMLInputElement | null>;
   latestChunk?: ConversationChunk;
-  liveChunkExpanded: boolean;
   livePageClassName: string;
   pageIndex: number;
   paceValue: number;
@@ -159,25 +161,19 @@ export type LiveConversationViewModel = {
   submitComposer: () => Promise<void>;
   speakText: (text: string) => Promise<void>;
   speakReply: (reply: ReplyOption) => Promise<void>;
-  toggleExpandedHistoryChunk: (chunkId: string) => void;
-  toggleLiveChunkExpanded: () => void;
-  toggleRunningCaptions: () => void;
+  toggleCaptionMode: () => void;
   resetSession: () => Promise<void>;
 };
 
 export function useLiveConversation(): LiveConversationViewModel {
   const { config, clearConfig } = useSessionContext();
-  const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
+  const [preferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [history, setHistory] = useState<ConversationChunk[]>([]);
   const [replySuggestions, setReplySuggestions] = useState<ReplyOption[]>([]);
   const [speakingReplyId, setSpeakingReplyId] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
-  const [liveChunkExpanded, setLiveChunkExpanded] = useState(false);
-  const [runningCaptionsEnabled, setRunningCaptionsEnabled] = useState(true);
+  const [fullCaptionsEnabled, setFullCaptionsEnabled] = useState(false);
   const [paceValue, setPaceValue] = useState(50);
-  const [expandedHistoryChunkId, setExpandedHistoryChunkId] = useState<string | null>(
-    null
-  );
   const [visibleActiveWords, setVisibleActiveWords] = useState("");
   const [composerValue, setComposerValue] = useState("");
   const [answer, setAnswer] = useState<ContextAnswer | null>(null);
@@ -252,8 +248,6 @@ export function useLiveConversation(): LiveConversationViewModel {
   }, [isListening]);
 
   useEffect(() => {
-    let cancelled = false;
-
     // Start fresh on refresh - reset the session record on the backend
     getCurrentSession().then(async (s) => {
       if (s.id) {
@@ -271,10 +265,6 @@ export function useLiveConversation(): LiveConversationViewModel {
       setVisibleActiveWords("");
       liveTranscriptBufferRef.current = "";
     });
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   useEffect(() => {
@@ -354,8 +344,6 @@ export function useLiveConversation(): LiveConversationViewModel {
       if (processed.shouldCommit && processed.chunk) {
         setHistory((previous) => [...previous, processed.chunk!]);
         setReplySuggestions(processed.replySuggestions);
-        setLiveChunkExpanded(false);
-        setExpandedHistoryChunkId(null);
         setAnswer(null);
       }
 
@@ -704,13 +692,14 @@ export function useLiveConversation(): LiveConversationViewModel {
       // Emergency: Browser Speech API (Zero-terms, Zero-latency)
       // Must be called as close to the user event as possible
       if ("speechSynthesis" in window) {
+        const speechWindow = window as VeraSpeechWindow;
         // DO NOT call .cancel() here as it permanently freezes the iOS Safari speech engine
         window.speechSynthesis.resume(); // Wake up iOS audio context
         
         const utterance = new SpeechSynthesisUtterance(text);
         
         // Prevent aggressive Safari garbage collection that cuts off speech mid-sentence
-        (window as any).__veraActiveUtterance = utterance; 
+        speechWindow.__veraActiveUtterance = utterance; 
         
         const voices = window.speechSynthesis.getVoices();
         
@@ -727,14 +716,14 @@ export function useLiveConversation(): LiveConversationViewModel {
           setTimeout(() => {
             if (isListening && room) void room.localParticipant.setMicrophoneEnabled(true).catch(() => {});
           }, 400);
-          (window as any).__veraActiveUtterance = null;
+          speechWindow.__veraActiveUtterance = null;
         };
         
         utterance.onerror = (e) => {
            console.error("[Vera TTS Error]", e);
            if (id) setSpeakingReplyId(null);
            if (isListening && room) void room.localParticipant.setMicrophoneEnabled(true).catch(() => {});
-           (window as any).__veraActiveUtterance = null;
+           speechWindow.__veraActiveUtterance = null;
         };
 
         window.speechSynthesis.speak(utterance);
@@ -791,16 +780,8 @@ export function useLiveConversation(): LiveConversationViewModel {
     }
   }
 
-  function toggleRunningCaptions() {
-    setRunningCaptionsEnabled((value) => !value);
-  }
-
-  function toggleLiveChunkExpanded() {
-    setLiveChunkExpanded((value) => !value);
-  }
-
-  function toggleExpandedHistoryChunk(chunkId: string) {
-    setExpandedHistoryChunkId((value) => (value === chunkId ? null : chunkId));
+  function toggleCaptionMode() {
+    setFullCaptionsEnabled((value) => !value);
   }
 
   function openKeyboard() {
@@ -813,25 +794,23 @@ export function useLiveConversation(): LiveConversationViewModel {
 
   return {
     answer,
+    captionMode: fullCaptionsEnabled ? "full" : "simplified",
     composerValue,
     connectionLabel,
-    expandedHistoryChunkId,
     historyPages,
     isBusy,
     isListening,
     keyboardInputRef,
     latestChunk,
-    liveChunkExpanded,
     livePageClassName,
     pageIndex,
     paceValue,
     previousChunk,
     replySuggestions,
-    runningCaptionsEnabled,
     speakingReplyId,
     statusNote,
     totalPages,
-    visibleActiveWords: runningCaptionsEnabled ? visibleActiveWords : "",
+    visibleActiveWords: fullCaptionsEnabled ? visibleActiveWords : "",
     dismissAnswer: () => setAnswer(null),
     goToPage,
     handleLiveSurfaceMetricsChange,
@@ -843,9 +822,7 @@ export function useLiveConversation(): LiveConversationViewModel {
     submitComposer,
     speakText,
     speakReply,
-    toggleExpandedHistoryChunk,
-    toggleLiveChunkExpanded,
-    toggleRunningCaptions,
+    toggleCaptionMode,
     resetSession: async () => {
       const session = await getCurrentSession();
       if (session.id) {

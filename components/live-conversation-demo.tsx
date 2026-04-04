@@ -47,11 +47,11 @@ function SettingsIcon() {
   );
 }
 
-function SimplifiedModeIcon() {
+function CompareIcon() {
   return (
-    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24">
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24">
       <path
-        d="M4 8.5h16M4 12h10M4 15.5h16"
+        d="M4 7.5h7M4 12h16M13 16.5h7"
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
@@ -75,50 +75,6 @@ function MicrophoneIcon() {
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-}
-
-function SendIcon() {
-  return (
-    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24">
-      <path
-        d="M4 12 19 5l-4.5 14-2.8-5-7.7-2Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-}
-
-function ShrinkIcon() {
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24">
-      <path
-        d="M4 14h6m0 0v6m0-6-7 7M20 10h-6m0 0V4m0 6 7-7"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-}
-
-function ExpandIcon() {
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24">
-      <path
-        d="M15 3h6m0 0v6m0-6-7 7M9 21H3m0 0v-6m0 6 7-7"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
         strokeWidth="2"
       />
     </svg>
@@ -152,25 +108,23 @@ function KeyboardIcon() {
 export function LiveConversationDemo() {
   const touchStartYRef = useRef<number | null>(null);
   const wheelLockRef = useRef(false);
+  const fullTranscriptScrollRef = useRef<HTMLDivElement | null>(null);
   const [showMessageInput, setShowMessageInput] = useState(false);
+  const [showFocusedFullText, setShowFocusedFullText] = useState(false);
   const {
     answer,
+    captionMode,
     composerValue,
     connectionLabel,
     dismissAnswer,
-    expandedHistoryChunkId,
     historyPages,
-    isBusy,
     isListening,
     keyboardInputRef,
     latestChunk,
-    liveChunkExpanded,
     livePageClassName,
     pageIndex,
-    paceValue,
     previousChunk,
     replySuggestions,
-    runningCaptionsEnabled,
     speakingReplyId,
     totalPages,
     visibleActiveWords,
@@ -178,14 +132,11 @@ export function LiveConversationDemo() {
     handleLiveSurfaceMetricsChange,
     isMicrophoneSupported,
     setComposerValue,
-    setPaceValue,
     toggleMicrophone,
     submitComposer,
     speakText,
     speakReply,
-    toggleExpandedHistoryChunk,
-    toggleLiveChunkExpanded,
-    toggleRunningCaptions,
+    toggleCaptionMode,
     resetSession
   } = useLiveConversation();
 
@@ -215,7 +166,28 @@ export function LiveConversationDemo() {
     };
   }, []);
 
+  useEffect(() => {
+    setShowFocusedFullText(false);
+  }, [latestChunk?.id, captionMode]);
+
   const showPausedPair = !visibleActiveWords && Boolean(previousChunk && latestChunk);
+  const fullTranscriptChunks = [
+    ...historyPages.flatMap((page) => page).reverse(),
+    ...(latestChunk ? [latestChunk] : [])
+  ];
+
+  useEffect(() => {
+    if (captionMode !== "full") {
+      return;
+    }
+
+    const element = fullTranscriptScrollRef.current;
+    if (!element) {
+      return;
+    }
+
+    element.scrollTop = element.scrollHeight;
+  }, [captionMode, fullTranscriptChunks.length, visibleActiveWords]);
 
   function handleTouchStart(event: TouchEvent<HTMLElement>) {
     touchStartYRef.current = event.touches[0]?.clientY ?? null;
@@ -273,6 +245,23 @@ export function LiveConversationDemo() {
           </div>
           <div className="top-bar-actions">
             <button
+              aria-label={
+                captionMode === "full"
+                  ? "Show simplified captions"
+                  : "Show full version captions"
+              }
+              className={captionMode === "full" ? "icon-button active" : "icon-button"}
+              onClick={toggleCaptionMode}
+              title={
+                captionMode === "full"
+                  ? "Show simplified"
+                  : "Show full version"
+              }
+              type="button"
+            >
+              <CompareIcon />
+            </button>
+            <button
               aria-label="New Session"
               className="icon-button"
               onClick={() => {
@@ -296,152 +285,134 @@ export function LiveConversationDemo() {
           </div>
         </header>
 
-        <section
-          className="reading-surface swipe-surface"
-          onTouchEnd={handleTouchEnd}
-          onTouchStart={handleTouchStart}
-          onWheel={(event) => {
-            event.preventDefault();
-            handleWheel(event.deltaY);
-          }}
-        >
-          <div
-            className="swipe-track"
-            style={{ transform: `translateY(-${pageIndex * 100}%)` }}
-          >
-            <section className="swipe-page live-page">
-              <div className={livePageClassName}>
-                {showPausedPair && previousChunk ? (
-                  <article className="focused-chunk-panel live-summary-panel previous-summary-panel">
-                    <div className="chunk-header">
-                      <p className="chunk-meta">{previousChunk.timestamp}</p>
-                    </div>
-                    <div className="chunk-text-stage">
-                      <button
-                        aria-label={liveChunkExpanded ? "Show simplified chunk" : "Show full transcript"}
-                        className="chunk-action-button"
-                        onClick={() => toggleExpandedHistoryChunk(previousChunk.id)}
-                        title={
-                          expandedHistoryChunkId === previousChunk.id
-                            ? "Show simplified chunk"
-                            : "Show full transcript"
-                        }
-                        type="button"
-                      >
-                        {expandedHistoryChunkId === previousChunk.id ? <ShrinkIcon /> : <ExpandIcon />}
-                      </button>
-                      <PretextLiveSurface
-                        className="focused-chunk-surface"
-                        maxFontSize={38}
-                        minFontSize={20}
-                        placeholder=""
-                        text={
-                          expandedHistoryChunkId === previousChunk.id
-                            ? previousChunk.original
-                            : previousChunk.simplified
-                        }
-                      />
-                    </div>
-                  </article>
-                ) : null}
-
-                {latestChunk ? (
-                  <article className="focused-chunk-panel live-summary-panel">
-                    <div className="chunk-header">
-                      <p className="chunk-meta">{latestChunk.timestamp}</p>
-                    </div>
-                    <div className="chunk-text-stage">
-                      <button
-                        aria-label={liveChunkExpanded ? "Show simplified chunk" : "Show full transcript"}
-                        className="chunk-action-button"
-                        onClick={toggleLiveChunkExpanded}
-                        title={liveChunkExpanded ? "Show simplified chunk" : "Show full transcript"}
-                        type="button"
-                      >
-                        {liveChunkExpanded ? <ShrinkIcon /> : <ExpandIcon />}
-                      </button>
-                      <PretextLiveSurface
-                        className="focused-chunk-surface"
-                        maxFontSize={42}
-                        minFontSize={22}
-                        placeholder=""
-                        text={
-                          liveChunkExpanded
-                            ? latestChunk.original
-                            : latestChunk.simplified
-                        }
-                      />
-                    </div>
-                  </article>
-                ) : null}
-
-                {visibleActiveWords ? (
-                  <section className="active-canvas live-canvas-panel">
-                    <PretextLiveSurface
-                      className="live-surface active-live-surface"
-                      maxFontSize={56}
-                      minFontSize={28}
-                      onMetricsChange={handleLiveSurfaceMetricsChange}
-                      placeholder=""
-                      text={visibleActiveWords}
-                    />
-                  </section>
-                ) : null}
-              </div>
-            </section>
-
-            {historyPages.map((pageChunks, pageChunksIndex) => {
-              const orderedPageChunks = [...pageChunks].reverse();
-
-              return (
-                <section className="swipe-page history-page" key={`history-page-${pageChunksIndex}`}>
-                  <div className="history-page-stack">
-                    {orderedPageChunks.map((chunk) => {
-                      const isExpanded = expandedHistoryChunkId === chunk.id;
-
-                      return (
-                        <article className="focused-chunk-panel history-chunk-panel" key={chunk.id}>
-                          <div className="chunk-header">
-                            <p className="chunk-meta">{chunk.timestamp}</p>
-                          </div>
-                          <div className="chunk-text-stage">
-                            <button
-                              aria-label={isExpanded ? "Show simplified chunk" : "Show full transcript"}
-                              className="chunk-action-button"
-                              onClick={() => toggleExpandedHistoryChunk(chunk.id)}
-                              title={isExpanded ? "Show simplified chunk" : "Show full transcript"}
-                              type="button"
-                            >
-                              {isExpanded ? <ShrinkIcon /> : <ExpandIcon />}
-                            </button>
-                            <PretextLiveSurface
-                              className="history-focused-surface"
-                              maxFontSize={42}
-                              minFontSize={22}
-                              placeholder=""
-                              text={isExpanded ? chunk.original : chunk.simplified}
-                            />
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-
-          {totalPages > 1 ? (
-            <div className="page-dots" aria-hidden="true">
-              {Array.from({ length: totalPages }, (_, index) => (
-                <span
-                  className={index === pageIndex ? "page-dot active" : "page-dot"}
-                  key={index}
-                />
+        {captionMode === "full" ? (
+          <section className="reading-surface full-transcript-surface">
+            <div className="full-transcript-scroll" ref={fullTranscriptScrollRef}>
+              {fullTranscriptChunks.map((chunk) => (
+                <article className="full-transcript-item" key={chunk.id}>
+                  <p className="chunk-meta">{chunk.timestamp}</p>
+                  <p className="full-transcript-text">{chunk.original}</p>
+                </article>
               ))}
+
+              {visibleActiveWords ? (
+                <article className="full-transcript-item live">
+                  <p className="chunk-meta">Live</p>
+                  <p className="full-transcript-text">{visibleActiveWords}</p>
+                </article>
+              ) : null}
             </div>
-          ) : null}
-        </section>
+          </section>
+        ) : (
+          <section
+            className="reading-surface swipe-surface"
+            onTouchEnd={handleTouchEnd}
+            onTouchStart={handleTouchStart}
+            onWheel={(event) => {
+              event.preventDefault();
+              handleWheel(event.deltaY);
+            }}
+          >
+            <div
+              className="swipe-track"
+              style={{ transform: `translateY(-${pageIndex * 100}%)` }}
+            >
+              <section className="swipe-page live-page">
+                <div
+                  className={
+                    latestChunk
+                      ? "page-stack summary-priority simplified-focus-page"
+                      : livePageClassName
+                  }
+                >
+                  {showPausedPair && previousChunk ? (
+                    null
+                  ) : null}
+
+                  {latestChunk ? (
+                    <article className="focused-chunk-panel live-summary-panel simplified-focus-panel">
+                      <div className="chunk-header centered-chunk-header">
+                        <p className="chunk-meta">{latestChunk.timestamp}</p>
+                      </div>
+                      <div className="chunk-text-stage">
+                        <PretextLiveSurface
+                          className="focused-chunk-surface centered-focused-surface"
+                          maxFontSize={42}
+                          minFontSize={22}
+                          placeholder=""
+                          text={showFocusedFullText ? latestChunk.original : latestChunk.simplified}
+                        />
+                      </div>
+                      <div className="focused-chunk-actions">
+                        <button
+                          aria-label={showFocusedFullText ? "Show simplified text" : "Show full text"}
+                          className="secondary-button inline-toggle-button"
+                          onClick={() => setShowFocusedFullText((value) => !value)}
+                          type="button"
+                        >
+                          {showFocusedFullText ? "Show simplified" : "Show full text"}
+                        </button>
+                      </div>
+                    </article>
+                  ) : null}
+
+                  {visibleActiveWords ? (
+                    <section className="active-canvas live-canvas-panel">
+                      <PretextLiveSurface
+                        className="live-surface active-live-surface"
+                        maxFontSize={56}
+                        minFontSize={28}
+                        onMetricsChange={handleLiveSurfaceMetricsChange}
+                        placeholder=""
+                        text={visibleActiveWords}
+                      />
+                    </section>
+                  ) : null}
+                </div>
+              </section>
+
+              {historyPages.map((pageChunks, pageChunksIndex) => {
+                const orderedPageChunks = [...pageChunks].reverse();
+
+                return (
+                  <section className="swipe-page history-page" key={`history-page-${pageChunksIndex}`}>
+                    <div className="history-page-stack">
+                      {orderedPageChunks.map((chunk) => {
+                        return (
+                          <article className="focused-chunk-panel history-chunk-panel" key={chunk.id}>
+                            <div className="chunk-header">
+                              <p className="chunk-meta">{chunk.timestamp}</p>
+                            </div>
+                            <div className="chunk-text-stage">
+                              <PretextLiveSurface
+                                className="history-focused-surface"
+                                maxFontSize={42}
+                                minFontSize={22}
+                                placeholder=""
+                                text={chunk.simplified}
+                              />
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+
+            {totalPages > 1 ? (
+              <div className="page-dots" aria-hidden="true">
+                {Array.from({ length: totalPages }, (_, index) => (
+                  <span
+                    className={index === pageIndex ? "page-dot active" : "page-dot"}
+                    key={index}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </section>
+        )}
 
         <footer className="composer-area">
           {replySuggestions.length > 0 ? (
