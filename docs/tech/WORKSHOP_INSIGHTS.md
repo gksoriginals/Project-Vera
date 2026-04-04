@@ -137,7 +137,7 @@ Caption speed control and simplification should be treated as core product behav
 
 ### 3. Vera should preserve user control and trust
 
-Users should be able to compare original and transformed text, adjust modes, and choose among reply suggestions rather than being forced into a single rewrite.
+Users should be able to switch between original live captions and transformed text, and choose among reply suggestions rather than being forced into a single rewrite.
 
 ### 4. Vera should be multilingual by design
 
@@ -157,6 +157,7 @@ Based on the workshop, Vera should prioritize:
 4. assisted replies with multiple rewrite options for TTS
 5. English-first implementation with a multilingual roadmap from the start
 6. multi-speaker awareness in the product roadmap, even if not fully shipped in the first milestone
+7. a compact single-button control that defaults to simplified captions and can switch to the full version when needed
 
 ## Summary
 

@@ -32,7 +32,7 @@ It should not look like a generic AI dashboard or a decorative startup landing p
 - actions should remain close to the content they affect
 - the live conversation screen should minimize navigation friction
 - the transformed caption should always feel primary
-- original text should remain accessible without competing visually
+- original text should remain accessible through a compact switch button without competing visually
 
 ### UI guardrails
 
@@ -169,6 +169,7 @@ flowchart TB
 - session title
 - connection status
 - current language
+- a single icon-only button that switches between `simplified` and `full version`
 - quick access to personalization
 - optional access to session review
 
@@ -178,17 +179,16 @@ This is the most important UI surface.
 
 The screen should behave as follows:
 
-- show the active utterance word by word on a dominant canvas as speech arrives
-- start with large type for early words, then reduce type size smoothly as the active utterance occupies more vertical space
+- default to a simplified caption view
+- provide a single top-level icon button to switch to the `full version`
+- show only one caption form at a time in the main reading area
+- when full-version mode is active, show the active utterance word by word as speech arrives
+- start with large type for early live words, then reduce type size smoothly as the active utterance occupies more vertical space
 - use deterministic text measurement and line layout so reflow feels stable rather than jittery
-- run chunk detection and simplification fully in the background during the live render
-- once a paragraph or chunk is complete and simplification is ready, replace the active live text with the selected simplified chunk
-- show only two focused text regions in the main viewport: the active live utterance and the most recent finalized simplified chunk
-- place the most recent finalized chunk above the active transcription like a calm two-part conversation view
-- keep that most recent finalized chunk large enough to read, not compressed into a small history row
+- run chunk detection and simplification fully in the background during live rendering
 - reveal older finalized chunks only after the user swipes upward into a separate history page flow
 - show just one prior chunk per history page rather than a scrolling stack
-- use `Pretext` not only for the active live canvas, but also for whichever chunk is currently focused for reading
+- use `Pretext` for whichever chunk is currently focused for reading
 - preserve a calm, nearly full-screen reading surface with minimal chrome
 - keep only subtle system indicators when absolutely necessary, such as connection state
 - avoid extra chips, helper text, banners, empty waiting cards, or explanation blocks in the active reading area
@@ -216,8 +216,8 @@ Allow the user to review prior finalized simplified chunks without disrupting th
 - the primary live viewport should show the active live canvas and only the most recent finalized chunk
 - older finalized chunks should remain available through separate swipe pages in chronological order
 - reaching older history should require upward swipe navigation rather than scrolling
-- the currently focused finalized chunk should primarily show the simplified version
-- the focused finalized chunk should include a compact button to reveal the full transcription chunk for that specific segment
+- the currently focused finalized chunk should default to simplified text
+- the interface should use the global switch button rather than per-chunk expand controls
 - transcript reveal should happen in place for the focused chunk, not as a separate archive screen
 - when full transcript is shown, that focused chunk should still be laid out at a large readable size using `Pretext`
 - the history experience should feel like app paging, not a decorative chat bubble list or scrolling transcript

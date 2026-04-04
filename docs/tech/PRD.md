@@ -124,15 +124,13 @@ The live surface should use deterministic text measurement and layout so the int
 
 The user can:
 
-- watch live captions stream in word by word on the full screen,
-- watch the active text start large and scale down smoothly as more words occupy the canvas,
-- see the active live surface replace the just-finished spoken paragraph with a simplified stanza,
-- keep only two chunks in the primary reading view at once: the active live transcription and the most recent finalized simplified chunk,
-- read that most recent finalized chunk above the active transcription in an app-like stacked view,
+- read finalized simplified chunks in the primary reading surface by default,
+- use a compact top-level button to switch to the full version when needed,
+- switch back to simplified text without changing the surrounding page structure,
+- see in-progress live speech only when the full-version state is active,
 - swipe upward into a separate chunk-history page flow rather than scrolling through a feed,
-- reveal the full transcript of the currently focused finalized chunk on demand,
 - type into a single bottom input that supports either reply playback or contextual question answering,
-- receive search answers without interrupting the live transcription surface,
+- receive search answers without interrupting the active reading surface,
 - play typed replies back using text-to-speech.
 
 The interface should preserve a sense of conversation flow instead of feeling like a transcript dump.
@@ -188,7 +186,7 @@ Possible assistive actions include:
 - attach explanation on demand
 - mark low confidence or fall back safely
 
-### 12.3 Adaptive caption transformation
+### 12.3 Adaptive caption transformation and caption mode switch
 
 - Generate multiple candidate caption forms from the same utterance.
 - Support at minimum candidates corresponding to:
@@ -196,8 +194,10 @@ Possible assistive actions include:
   - readability simplification,
   - compressed urgent rendering.
 - Choose the best candidate automatically for the available layout, comprehension context, and user profile.
-- Replace the active streaming transcript with the selected simplified stanza once the paragraph-level chunk is complete.
-- Commit that finalized stanza into the focused last-chunk slot while older finalized chunks move into swipe-only history pages.
+- Commit finalized chunks into history with both an original transcript form and a selected simplified form.
+- Default the interface to simplified rendering.
+- Allow a single compact button to switch the interface between the simplified version and the original full version.
+- Avoid mixing both versions in the primary reading surface at the same time.
 
 ### 12.4 Layout-aware readability optimization
 
@@ -205,7 +205,7 @@ Possible assistive actions include:
 - Minimize reflow and jumping lines.
 - Prefer captions that preserve meaning while fitting available space.
 - Use layout as a scoring and verification layer in the rendering pipeline.
-- Keep the active live view focused on one utterance at a time while showing only the most recent finalized chunk alongside it in the primary viewport.
+- Keep the active reading view focused on one caption mode at a time.
 - Use `Pretext` to size the currently focused chunk, whether simplified or full-transcript, so it remains large enough to read within the available surface.
 - Avoid scroll-dependent layouts in the live experience and prefer discrete swipe transitions between chunk views.
 
