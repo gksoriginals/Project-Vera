@@ -1,10 +1,5 @@
 # Co-Design Workshop Research for vera
 
-This document combines the contents of:
-
-- `Co-Design Workshop.pdf`
-- `Designing for Inclusive Communication.pdf`
-
 All mentions of the previous project name in the source material have been normalized to `vera`.
 
 ## 1. Workshop Overview
@@ -304,13 +299,13 @@ Participants found all features in the current version of vera AI helpful. The a
 
 ![Love break fix 7](../assets/Insights%20photos/Love%20break%20fix/IMG_6704.jpg)
 
-## 8. Consolidated Insights Across Both Source Documents
+## 8. Consolidated Insights
 
-Taken together, the two documents point to the following combined picture:
+The workshop findings indicate the following:
 
-1. Current captioning tools create significant overload through speed, noise, poor speaker separation, and inaccurate handling of multilingual and accented speech.
-2. Inclusive captioning is not only about transcription accuracy. It also depends on readability, timing control, contextual awareness, language accessibility, and support for response generation.
-3. vera's current feature set already maps well to user priorities.
+1. Existing captioning tools create overload through speed, noise, poor speaker separation, and weak handling of multilingual and accented speech.
+2. Inclusive captioning is not just about transcription accuracy. It also depends on readability, timing control, contextual awareness, language accessibility, and support for response generation.
+3. vera's current direction aligns well with participant priorities, especially around simplification, caption control, and communication support.
 4. The strongest improvement opportunities are:
    - Adjustable caption speed
    - Mixed-language support
@@ -318,5 +313,5 @@ Taken together, the two documents point to the following combined picture:
    - Better TTS voice quality and contextual tone
    - On-demand explanation or elaboration of difficult words and phrases
    - Stronger UI clarity and better control over AI-mediated rewriting
-5. The product appears relevant across classrooms, workplaces, and everyday communication scenarios.
-6. The workshop outputs were considered strong enough to move into feasibility validation, benchmarking, and pilot preparation rather than continuing to run repeated co-design workshops.
+5. The product appears useful across classrooms, workplaces, and everyday communication scenarios.
+6. The workshop results were strong enough to support feasibility validation, benchmarking, and pilot preparation.
