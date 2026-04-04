@@ -175,6 +175,10 @@ export function LiveConversationDemo() {
     ...historyPages.flatMap((page) => page).reverse(),
     ...(latestChunk ? [latestChunk] : [])
   ];
+  const fullTranscriptHistoryText = fullTranscriptChunks
+    .map((chunk) => chunk.original.trim())
+    .filter(Boolean)
+    .join(" ");
 
   useEffect(() => {
     if (captionMode !== "full") {
@@ -243,63 +247,29 @@ export function LiveConversationDemo() {
               title={connectionLabel}
             />
           </div>
-          <div className="top-bar-actions">
-            <button
-              aria-label={
-                captionMode === "full"
-                  ? "Show simplified captions"
-                  : "Show full version captions"
-              }
-              className={captionMode === "full" ? "icon-button active" : "icon-button"}
-              onClick={toggleCaptionMode}
-              title={
-                captionMode === "full"
-                  ? "Show simplified"
-                  : "Show full version"
-              }
-              type="button"
-            >
-              <CompareIcon />
-            </button>
-            <button
-              aria-label="New Session"
-              className="icon-button"
-              onClick={() => {
-                if (confirm("Start a new session? This will clear current history.")) {
-                  void resetSession();
-                }
-              }}
-              title="New Session"
-              type="button"
-            >
-              <ResetIcon />
-            </button>
-            <Link
-              aria-label="Settings"
-              className="icon-button"
-              href="/settings"
-              title="Settings"
-            >
-              <SettingsIcon />
-            </Link>
-          </div>
         </header>
 
         {captionMode === "full" ? (
           <section className="reading-surface full-transcript-surface">
             <div className="full-transcript-scroll" ref={fullTranscriptScrollRef}>
-              {fullTranscriptChunks.map((chunk) => (
-                <article className="full-transcript-item" key={chunk.id}>
-                  <p className="chunk-meta">{chunk.timestamp}</p>
-                  <p className="full-transcript-text">{chunk.original}</p>
-                </article>
-              ))}
+              {fullTranscriptHistoryText ? (
+                <p className="full-transcript-text full-transcript-history">
+                  {fullTranscriptHistoryText}
+                </p>
+              ) : null}
 
               {visibleActiveWords ? (
-                <article className="full-transcript-item live">
-                  <p className="chunk-meta">Live</p>
-                  <p className="full-transcript-text">{visibleActiveWords}</p>
-                </article>
+                <div className="live-pretext-item">
+                  <PretextLiveSurface
+                    className="live-surface full-transcript-live-surface"
+                    maxFontSize={60}
+                    minFontSize={34}
+                    clipOverflowFromStart
+                    onMetricsChange={handleLiveSurfaceMetricsChange}
+                    placeholder=""
+                    text={visibleActiveWords}
+                  />
+                </div>
               ) : null}
             </div>
           </section>
@@ -361,7 +331,8 @@ export function LiveConversationDemo() {
                       <PretextLiveSurface
                         className="live-surface active-live-surface"
                         maxFontSize={56}
-                        minFontSize={28}
+                        minFontSize={36}
+                        clipOverflowFromStart
                         onMetricsChange={handleLiveSurfaceMetricsChange}
                         placeholder=""
                         text={visibleActiveWords}
@@ -437,6 +408,27 @@ export function LiveConversationDemo() {
               {/* Buttons: Managed via Vanilla CSS for reliable high-speed hiding */}
               <div className={showMessageInput ? "composer-row control-row centered-controls hidden-controls" : "composer-row control-row centered-controls"}>
                 <button
+                  aria-label={
+                    captionMode === "full"
+                      ? "Show simplified captions"
+                      : "Show full version captions"
+                  }
+                  className={captionMode === "full" ? "secondary-button mic-toggle active" : "secondary-button mic-toggle"}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    toggleCaptionMode();
+                  }}
+                  title={
+                    captionMode === "full"
+                      ? "Show simplified"
+                      : "Show full version"
+                  }
+                  type="button"
+                >
+                  <CompareIcon />
+                </button>
+
+                <button
                   aria-label={isListening ? "Stop microphone" : "Start microphone"}
                   className={isListening ? "secondary-button mic-toggle active" : "secondary-button mic-toggle"}
                   disabled={!isMicrophoneSupported && !isListening}
@@ -464,6 +456,30 @@ export function LiveConversationDemo() {
                 >
                   <KeyboardIcon />
                 </button>
+
+                <button
+                  aria-label="New Session"
+                  className="secondary-button mic-toggle"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    if (confirm("Start a new session? This will clear current history.")) {
+                      void resetSession();
+                    }
+                  }}
+                  title="New Session"
+                  type="button"
+                >
+                  <ResetIcon />
+                </button>
+
+                <Link
+                  aria-label="Settings"
+                  className="secondary-button mic-toggle"
+                  href="/settings"
+                  title="Settings"
+                >
+                  <SettingsIcon />
+                </Link>
               </div>
 
               {/* Phantom Footer Input: Always present for zero-latency focus */}

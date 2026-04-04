@@ -9,6 +9,7 @@ type PretextLiveSurfaceProps = {
   className?: string;
   minFontSize?: number;
   maxFontSize?: number;
+  clipOverflowFromStart?: boolean;
   placeholder?: string;
   emptyClassName?: string;
   onMetricsChange?: (metrics: LiveSurfaceMetrics) => void;
@@ -34,6 +35,7 @@ export function PretextLiveSurface({
   className,
   minFontSize = DEFAULT_MIN_FONT_SIZE,
   maxFontSize = DEFAULT_MAX_FONT_SIZE,
+  clipOverflowFromStart = false,
   placeholder = "Waiting for the next spoken phrase.",
   emptyClassName,
   onMetricsChange
@@ -118,6 +120,50 @@ export function PretextLiveSurface({
       dimensions.width,
       Math.round(minFontSize * 1.16)
     );
+
+    if (clipOverflowFromStart && minResult.height > dimensions.height) {
+      const words = text.trim().split(/\s+/).filter(Boolean);
+      let low = 1;
+      let high = words.length;
+      let bestResult = layoutWithLines(
+        prepareWithSegments(words.slice(-1).join(" "), `${minFontSize}px ${FONT_FAMILY}`),
+        dimensions.width,
+        Math.round(minFontSize * 1.16)
+      );
+
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const candidateText = words.slice(-mid).join(" ");
+        const candidateResult = layoutWithLines(
+          prepareWithSegments(candidateText, `${minFontSize}px ${FONT_FAMILY}`),
+          dimensions.width,
+          Math.round(minFontSize * 1.16)
+        );
+
+        if (candidateResult.height <= dimensions.height) {
+          bestResult = candidateResult;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+
+      setLayout({
+        fontSize: minFontSize,
+        lineHeight: Math.round(minFontSize * 1.16),
+        lines: bestResult.lines.map((line) => line.text)
+      });
+
+      onMetricsChange?.({
+        occupancy: Math.min(bestResult.height / dimensions.height, 1),
+        lineCount: bestResult.lines.length,
+        fontSize: minFontSize,
+        isAtMinimumFontSize: true,
+        isOverflowing: true
+      });
+      return;
+    }
+
     const occupancy = Math.min(minResult.height / dimensions.height, 1);
 
     onMetricsChange?.({
@@ -127,7 +173,15 @@ export function PretextLiveSurface({
       isAtMinimumFontSize: best.fontSize <= minFontSize,
       isOverflowing: minResult.height > dimensions.height
     });
-  }, [dimensions.height, dimensions.width, maxFontSize, minFontSize, onMetricsChange, text]);
+  }, [
+    clipOverflowFromStart,
+    dimensions.height,
+    dimensions.width,
+    maxFontSize,
+    minFontSize,
+    onMetricsChange,
+    text
+  ]);
 
   return (
     <div className={className ?? "live-surface"} ref={containerRef}>
