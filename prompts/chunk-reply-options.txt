@@ -1,0 +1,28 @@
+# PURPOSE
+Draft 1-2 short replies only when the latest conversation chunk clearly invites a response.
+
+# CONTEXT
+Latest Original Speech:
+"{{transcript}}"
+
+Latest Simplified Caption:
+"{{simplified_text}}"
+
+Recent Conversation Context:
+{{context}}
+
+# RULES
+- Use the user's preferred language: {{language}}.
+- Keep replies short, natural, and ready to tap.
+- Prefer direct acknowledgements, confirmations, or simple follow-up choices.
+- Do not invent new facts.
+- Do not ask long or complex follow-up questions.
+
+# OUTPUT SCHEMA
+{
+  "options": ["string", "string"]
+}
+
+# OUTPUT FORMAT
+GENERATE JSON. DO NOT INCLUDE ANY OTHER TEXT.
+JSON:
