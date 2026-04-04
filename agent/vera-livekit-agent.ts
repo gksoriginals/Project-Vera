@@ -12,16 +12,24 @@ const EMPTY_SURFACE = {
   isOverflowing: false
 } as const;
 
+type AgentRemoteParticipant = {
+  metadata?: string;
+};
+
+type AgentRoomContext = {
+  remoteParticipants: Map<string, AgentRemoteParticipant>;
+};
+
 export class VeraLiveKitAgent extends voice.Agent {
   #chunkHistory: ConversationChunk[] = [];
   #preferences: UserPreferences;
   #groqApiKey?: string;
-  #room?: unknown; // To be set via setter or constructor
+  #room?: AgentRoomContext;
 
   private constructor(options: {
     instructions: string;
     preferences: UserPreferences;
-    room?: unknown;
+    room?: AgentRoomContext;
   }) {
     super({
       instructions: options.instructions
@@ -32,7 +40,7 @@ export class VeraLiveKitAgent extends voice.Agent {
 
   static async create(options?: {
     preferences?: UserPreferences;
-    room?: unknown;
+    room?: AgentRoomContext;
   }) {
     const instructions = await loadPrompt("livekit-agent-system");
 
@@ -59,8 +67,7 @@ export class VeraLiveKitAgent extends voice.Agent {
 
     // Extract ephemeral Groq key from ANY remote participant metadata if available
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const room = this.#room as any;
+      const room = this.#room;
       if (room) {
         for (const p of room.remoteParticipants.values()) {
           const metadataStr = p.metadata;
