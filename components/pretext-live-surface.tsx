@@ -50,6 +50,8 @@ export function PretextLiveSurface({
     lineHeight: Math.round(maxFontSize * 1.16),
     lines: []
   });
+  const lastStableFontSizeRef = useRef<number>(maxFontSize);
+  const previousTextRef = useRef("");
 
   useEffect(() => {
     const element = containerRef.current;
@@ -77,6 +79,8 @@ export function PretextLiveSurface({
         lineHeight: Math.round(maxFontSize * 1.16),
         lines: []
       });
+      lastStableFontSizeRef.current = maxFontSize;
+      previousTextRef.current = "";
       onMetricsChange?.({
         occupancy: 0,
         lineCount: 0,
@@ -87,33 +91,65 @@ export function PretextLiveSurface({
       return;
     }
 
-    let low = minFontSize;
-    let high = maxFontSize;
-    let best: CalculatedLayout = {
-      fontSize: minFontSize,
-      lineHeight: Math.round(minFontSize * 1.16),
-      lines: [text]
-    };
-
-    while (low <= high) {
-      const candidate = Math.floor((low + high) / 2);
-      const lineHeight = Math.round(candidate * 1.16);
-      const prepared = prepareWithSegments(text, `${candidate}px ${FONT_FAMILY}`);
+    const measureLayout = (candidateFontSize: number): CalculatedLayout & { height: number } => {
+      const lineHeight = Math.round(candidateFontSize * 1.16);
+      const prepared = prepareWithSegments(text, `${candidateFontSize}px ${FONT_FAMILY}`);
       const result = layoutWithLines(prepared, dimensions.width, lineHeight);
 
-      if (result.height <= dimensions.height) {
-        best = {
-          fontSize: candidate,
-          lineHeight,
-          lines: result.lines.map((line) => line.text)
-        };
-        low = candidate + 1;
+      return {
+        fontSize: candidateFontSize,
+        lineHeight,
+        lines: result.lines.map((line) => line.text),
+        height: result.height
+      };
+    };
+
+    const previousText = previousTextRef.current;
+    const shouldResetSizing =
+      !previousText ||
+      text.length < previousText.length * 0.7 ||
+      !text.startsWith(previousText.slice(0, Math.max(0, previousText.length - 12)));
+
+    let low = minFontSize;
+    let high = shouldResetSizing
+      ? maxFontSize
+      : Math.max(minFontSize, Math.min(maxFontSize, lastStableFontSizeRef.current));
+    let best = measureLayout(minFontSize);
+
+    if (!shouldResetSizing) {
+      const previousStableLayout = measureLayout(high);
+      if (previousStableLayout.height <= dimensions.height) {
+        best = previousStableLayout;
       } else {
-        high = candidate - 1;
+        while (low <= high) {
+          const candidate = Math.floor((low + high) / 2);
+          const candidateLayout = measureLayout(candidate);
+
+          if (candidateLayout.height <= dimensions.height) {
+            best = candidateLayout;
+            low = candidate + 1;
+          } else {
+            high = candidate - 1;
+          }
+        }
+      }
+    } else {
+      while (low <= high) {
+        const candidate = Math.floor((low + high) / 2);
+        const candidateLayout = measureLayout(candidate);
+
+        if (candidateLayout.height <= dimensions.height) {
+          best = candidateLayout;
+          low = candidate + 1;
+        } else {
+          high = candidate - 1;
+        }
       }
     }
 
     setLayout(best);
+    lastStableFontSizeRef.current = best.fontSize;
+    previousTextRef.current = text;
     const minPrepared = prepareWithSegments(text, `${minFontSize}px ${FONT_FAMILY}`);
     const minResult = layoutWithLines(
       minPrepared,
@@ -153,6 +189,8 @@ export function PretextLiveSurface({
         lineHeight: Math.round(minFontSize * 1.16),
         lines: bestResult.lines.map((line) => line.text)
       });
+      lastStableFontSizeRef.current = minFontSize;
+      previousTextRef.current = text;
 
       onMetricsChange?.({
         occupancy: Math.min(bestResult.height / dimensions.height, 1),

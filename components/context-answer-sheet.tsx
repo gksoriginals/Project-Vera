@@ -4,11 +4,13 @@ import type { ContextAnswer } from "@/lib/types";
 
 type ContextAnswerSheetProps = {
   answer: ContextAnswer | null;
+  className?: string;
   onDismiss: () => void;
 };
 
 export function ContextAnswerSheet({
   answer,
+  className,
   onDismiss
 }: ContextAnswerSheetProps) {
   if (!answer) {
@@ -16,7 +18,7 @@ export function ContextAnswerSheet({
   }
 
   return (
-    <aside className="answer-sheet">
+    <aside className={className ? `answer-sheet ${className}` : "answer-sheet"}>
       <div className="answer-sheet-header">
         <div>
           <p className="field-label">Answer</p>

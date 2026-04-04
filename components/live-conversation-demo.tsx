@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type TouchEvent } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ContextAnswerSheet } from "@/components/context-answer-sheet";
-import { PretextLiveSurface } from "@/components/pretext-live-surface";
+import {
+  DesktopLiveShell,
+  MobileLiveShell,
+  TabletLiveShell
+} from "@/components/live-shell-layouts";
+import { FullCaptionSurface } from "@/components/full-caption-surface";
+import { SimplifiedPager } from "@/components/simplified-pager";
 import { useLiveConversation } from "@/hooks/use-live-conversation";
-
-const SWIPE_THRESHOLD = 56;
-const WHEEL_THRESHOLD = 90;
 
 function ResetIcon() {
   return (
@@ -105,25 +108,35 @@ function KeyboardIcon() {
   );
 }
 
+type LiveShellMode = "mobile" | "tablet" | "desktop";
+
+function getLiveShellMode(width: number): LiveShellMode {
+  if (width <= 640) {
+    return "mobile";
+  }
+
+  if (width <= 1024) {
+    return "tablet";
+  }
+
+  return "desktop";
+}
+
 export function LiveConversationDemo() {
-  const touchStartYRef = useRef<number | null>(null);
-  const wheelLockRef = useRef(false);
-  const fullTranscriptScrollRef = useRef<HTMLDivElement | null>(null);
   const [showMessageInput, setShowMessageInput] = useState(false);
   const [showFocusedFullText, setShowFocusedFullText] = useState(false);
+  const [shellMode, setShellMode] = useState<LiveShellMode>("tablet");
   const {
     answer,
     captionMode,
     composerValue,
     connectionLabel,
     dismissAnswer,
-    historyPages,
+    simplifiedHistoryPages,
     isListening,
     keyboardInputRef,
     latestChunk,
-    livePageClassName,
     pageIndex,
-    previousChunk,
     replySuggestions,
     speakingReplyId,
     totalPages,
@@ -143,6 +156,20 @@ export function LiveConversationDemo() {
   const [viewportBottom, setViewportBottom] = useState(0);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleWindowResize = () => {
+      setShellMode(getLiveShellMode(window.innerWidth));
+    };
+
+    handleWindowResize();
+    window.addEventListener("resize", handleWindowResize);
+    return () => window.removeEventListener("resize", handleWindowResize);
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) {
       return;
     }
@@ -158,6 +185,7 @@ export function LiveConversationDemo() {
       setViewportBottom(offset);
     };
 
+    handleResize();
     window.visualViewport.addEventListener("resize", handleResize);
     window.visualViewport.addEventListener("scroll", handleResize);
     return () => {
@@ -170,71 +198,96 @@ export function LiveConversationDemo() {
     setShowFocusedFullText(false);
   }, [latestChunk?.id, captionMode]);
 
-  const showPausedPair = !visibleActiveWords && Boolean(previousChunk && latestChunk);
-  const fullTranscriptChunks = [
-    ...historyPages.flatMap((page) => page).reverse(),
-    ...(latestChunk ? [latestChunk] : [])
-  ];
+  const fullTranscriptChunks = [...simplifiedHistoryPages.slice().reverse(), ...(latestChunk ? [latestChunk] : [])]
+    .filter((chunk) => chunk.original.trim().length > 0);
   const fullTranscriptHistoryText = fullTranscriptChunks
     .map((chunk) => chunk.original.trim())
-    .filter(Boolean)
     .join(" ");
+  const showDesktopCompare = captionMode === "full";
 
-  useEffect(() => {
-    if (captionMode !== "full") {
-      return;
-    }
+  const simplifiedSurface = (
+    <SimplifiedPager
+      className="single-simplified-pager"
+      currentChunk={latestChunk}
+      currentMaxFontSize={42}
+      currentMinFontSize={22}
+      goToPage={goToPage}
+      historyMaxFontSize={42}
+      historyMinFontSize={22}
+      historyChunks={simplifiedHistoryPages}
+      onToggleFullText={() => setShowFocusedFullText((value) => !value)}
+      pageIndex={pageIndex}
+      showFullText={showFocusedFullText}
+      totalPages={totalPages}
+    />
+  );
 
-    const element = fullTranscriptScrollRef.current;
-    if (!element) {
-      return;
-    }
+  const desktopSimplifiedCompareSurface = (
+    <SimplifiedPager
+      className="desktop-simplified-compare-surface"
+      currentChunk={latestChunk}
+      currentMaxFontSize={34}
+      currentMinFontSize={18}
+      goToPage={goToPage}
+      historyMaxFontSize={34}
+      historyMinFontSize={18}
+      historyChunks={simplifiedHistoryPages}
+      onToggleFullText={() => setShowFocusedFullText((value) => !value)}
+      pageIndex={pageIndex}
+      showFullText={showFocusedFullText}
+      totalPages={totalPages}
+    />
+  );
 
-    element.scrollTop = element.scrollHeight;
-  }, [captionMode, fullTranscriptChunks.length, visibleActiveWords]);
+  const fullCaptionSurface = (
+    <FullCaptionSurface
+      historyText={fullTranscriptHistoryText}
+      isCompareMode={showDesktopCompare}
+      liveText={visibleActiveWords}
+      shellMode={shellMode}
+      onMetricsChange={handleLiveSurfaceMetricsChange}
+    />
+  );
+  const mobileAnswerSheet = (
+    <ContextAnswerSheet
+      answer={answer}
+      className="mobile-answer-sheet"
+      onDismiss={dismissAnswer}
+    />
+  );
 
-  function handleTouchStart(event: TouchEvent<HTMLElement>) {
-    touchStartYRef.current = event.touches[0]?.clientY ?? null;
-  }
+  const desktopAnswerSheet = (
+    <ContextAnswerSheet
+      answer={answer}
+      className="desktop-answer-sheet"
+      onDismiss={dismissAnswer}
+    />
+  );
 
-  function handleTouchEnd(event: TouchEvent<HTMLElement>) {
-    if (touchStartYRef.current === null) {
-      return;
-    }
+  const shellContent =
+    shellMode === "desktop" ? (
+      <DesktopLiveShell
+        desktopAnswerSheet={desktopAnswerSheet}
+        fullCaptionSurface={fullCaptionSurface}
+        showCompare={showDesktopCompare}
+        simplifiedSurface={desktopSimplifiedCompareSurface}
+      />
+    ) : shellMode === "tablet" ? (
+      <TabletLiveShell
+        answerSheet={mobileAnswerSheet}
+        fullCaptionSurface={fullCaptionSurface}
+        showCompare={showDesktopCompare}
+        simplifiedSurface={simplifiedSurface}
+      />
+    ) : (
+      <MobileLiveShell
+        answerSheet={mobileAnswerSheet}
+        fullCaptionSurface={fullCaptionSurface}
+        showCompare={showDesktopCompare}
+        simplifiedSurface={simplifiedSurface}
+      />
+    );
 
-    const endY = event.changedTouches[0]?.clientY ?? touchStartYRef.current;
-    const deltaY = touchStartYRef.current - endY;
-    touchStartYRef.current = null;
-
-    if (Math.abs(deltaY) < SWIPE_THRESHOLD) {
-      return;
-    }
-
-    if (deltaY > 0) {
-      goToPage(pageIndex - 1);
-      return;
-    }
-
-    goToPage(pageIndex + 1);
-  }
-
-  function handleWheel(deltaY: number) {
-    if (wheelLockRef.current || Math.abs(deltaY) < WHEEL_THRESHOLD) {
-      return;
-    }
-
-    wheelLockRef.current = true;
-    window.setTimeout(() => {
-      wheelLockRef.current = false;
-    }, 280);
-
-    if (deltaY > 0) {
-      goToPage(pageIndex - 1);
-      return;
-    }
-
-    goToPage(pageIndex + 1);
-  }
   return (
     <main className="live-shell">
       <section className="live-panel app-shell">
@@ -249,141 +302,7 @@ export function LiveConversationDemo() {
           </div>
         </header>
 
-        {captionMode === "full" ? (
-          <section className="reading-surface full-transcript-surface">
-            <div className="full-transcript-scroll" ref={fullTranscriptScrollRef}>
-              {fullTranscriptHistoryText ? (
-                <p className="full-transcript-text full-transcript-history">
-                  {fullTranscriptHistoryText}
-                </p>
-              ) : null}
-
-              {visibleActiveWords ? (
-                <div className="live-pretext-item">
-                  <PretextLiveSurface
-                    className="live-surface full-transcript-live-surface"
-                    maxFontSize={60}
-                    minFontSize={34}
-                    clipOverflowFromStart
-                    onMetricsChange={handleLiveSurfaceMetricsChange}
-                    placeholder=""
-                    text={visibleActiveWords}
-                  />
-                </div>
-              ) : null}
-            </div>
-          </section>
-        ) : (
-          <section
-            className="reading-surface swipe-surface"
-            onTouchEnd={handleTouchEnd}
-            onTouchStart={handleTouchStart}
-            onWheel={(event) => {
-              event.preventDefault();
-              handleWheel(event.deltaY);
-            }}
-          >
-            <div
-              className="swipe-track"
-              style={{ transform: `translateY(-${pageIndex * 100}%)` }}
-            >
-              <section className="swipe-page live-page">
-                <div
-                  className={
-                    latestChunk
-                      ? "page-stack summary-priority simplified-focus-page"
-                      : livePageClassName
-                  }
-                >
-                  {showPausedPair && previousChunk ? (
-                    null
-                  ) : null}
-
-                  {latestChunk ? (
-                    <article className="focused-chunk-panel live-summary-panel simplified-focus-panel">
-                      <div className="chunk-header centered-chunk-header">
-                        <p className="chunk-meta">{latestChunk.timestamp}</p>
-                      </div>
-                      <div className="chunk-text-stage">
-                        <PretextLiveSurface
-                          className="focused-chunk-surface centered-focused-surface"
-                          maxFontSize={42}
-                          minFontSize={22}
-                          placeholder=""
-                          text={showFocusedFullText ? latestChunk.original : latestChunk.simplified}
-                        />
-                      </div>
-                      <div className="focused-chunk-actions">
-                        <button
-                          aria-label={showFocusedFullText ? "Show simplified text" : "Show full text"}
-                          className="secondary-button inline-toggle-button"
-                          onClick={() => setShowFocusedFullText((value) => !value)}
-                          type="button"
-                        >
-                          {showFocusedFullText ? "Show simplified" : "Show full text"}
-                        </button>
-                      </div>
-                    </article>
-                  ) : null}
-
-                  {visibleActiveWords ? (
-                    <section className="active-canvas live-canvas-panel">
-                      <PretextLiveSurface
-                        className="live-surface active-live-surface"
-                        maxFontSize={56}
-                        minFontSize={36}
-                        clipOverflowFromStart
-                        onMetricsChange={handleLiveSurfaceMetricsChange}
-                        placeholder=""
-                        text={visibleActiveWords}
-                      />
-                    </section>
-                  ) : null}
-                </div>
-              </section>
-
-              {historyPages.map((pageChunks, pageChunksIndex) => {
-                const orderedPageChunks = [...pageChunks].reverse();
-
-                return (
-                  <section className="swipe-page history-page" key={`history-page-${pageChunksIndex}`}>
-                    <div className="history-page-stack">
-                      {orderedPageChunks.map((chunk) => {
-                        return (
-                          <article className="focused-chunk-panel history-chunk-panel" key={chunk.id}>
-                            <div className="chunk-header">
-                              <p className="chunk-meta">{chunk.timestamp}</p>
-                            </div>
-                            <div className="chunk-text-stage">
-                              <PretextLiveSurface
-                                className="history-focused-surface"
-                                maxFontSize={42}
-                                minFontSize={22}
-                                placeholder=""
-                                text={chunk.simplified}
-                              />
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  </section>
-                );
-              })}
-            </div>
-
-            {totalPages > 1 ? (
-              <div className="page-dots" aria-hidden="true">
-                {Array.from({ length: totalPages }, (_, index) => (
-                  <span
-                    className={index === pageIndex ? "page-dot active" : "page-dot"}
-                    key={index}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </section>
-        )}
+        {shellContent}
 
         <footer className="composer-area">
           {replySuggestions.length > 0 ? (
@@ -487,7 +406,7 @@ export function LiveConversationDemo() {
                 className={`floating-text-container ${showMessageInput ? "active" : ""}`}
                 style={showMessageInput ? { bottom: `${viewportBottom + 12}px` } : {}}
               >
-                <div className="relative flex-1 flex justify-center px-6">
+                <div className="floating-input-shell">
                   <input
                     ref={keyboardInputRef}
                     autoComplete="off"
@@ -528,7 +447,6 @@ export function LiveConversationDemo() {
           </div>
         </footer>
 
-        <ContextAnswerSheet answer={answer} onDismiss={dismissAnswer} />
       </section>
     </main>
   );

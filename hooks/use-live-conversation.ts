@@ -26,7 +26,6 @@ import type {
   UserPreferences
 } from "@/lib/types";
 
-const HISTORY_CHUNKS_PER_PAGE = 2;
 const AUTO_FLUSH_DEBOUNCE_MS = 800;
 const SILENCE_BUFFER_FLUSH_MS = 1400;
 const SILENCE_FORCE_FLUSH_MS = 2400;
@@ -144,15 +143,13 @@ export type LiveConversationViewModel = {
   captionMode: "full" | "simplified";
   composerValue: string;
   connectionLabel: string;
-  historyPages: ConversationChunk[][];
+  simplifiedHistoryPages: ConversationChunk[];
   isBusy: boolean;
   isListening: boolean;
   keyboardInputRef: RefObject<HTMLInputElement | null>;
   latestChunk?: ConversationChunk;
-  livePageClassName: string;
   pageIndex: number;
   paceValue: number;
-  previousChunk: ConversationChunk | null;
   replySuggestions: ReplyOption[];
   runningCaptionsEnabled: boolean;
   speakingReplyId: string | null;
@@ -218,29 +215,11 @@ export function useLiveConversation(): LiveConversationViewModel {
   const isConnectingRef = useRef(false);
 
   const latestChunk = history.at(-1);
-  const previousChunk = history.length > 1 ? history[history.length - 2] : null;
-
-  const historyPages = useMemo(() => {
-    const chunks = history.slice(0, -1).reverse();
-    const pages: ConversationChunk[][] = [];
-
-    for (let index = 0; index < chunks.length; index += HISTORY_CHUNKS_PER_PAGE) {
-      pages.push(chunks.slice(index, index + HISTORY_CHUNKS_PER_PAGE));
-    }
-
-    return pages;
+  const simplifiedHistoryPages = useMemo(() => {
+    return history.slice(0, -1).reverse();
   }, [history]);
 
-  const totalPages = 1 + historyPages.length;
-  const showPausedPair = !visibleActiveWords && Boolean(previousChunk && latestChunk);
-
-  const livePageClassName = latestChunk
-    ? visibleActiveWords
-      ? "page-stack"
-      : showPausedPair
-        ? "page-stack double-summary"
-        : "page-stack summary-priority"
-    : "page-stack solo-live";
+  const totalPages = 1 + simplifiedHistoryPages.length;
 
   useEffect(() => {
     setPageIndex((value) => Math.min(value, Math.max(totalPages - 1, 0)));
@@ -849,15 +828,13 @@ export function useLiveConversation(): LiveConversationViewModel {
     captionMode: fullCaptionsEnabled ? "full" : "simplified",
     composerValue,
     connectionLabel,
-    historyPages,
+    simplifiedHistoryPages,
     isBusy,
     isListening,
     keyboardInputRef,
     latestChunk,
-    livePageClassName,
     pageIndex,
     paceValue,
-    previousChunk,
     replySuggestions,
     runningCaptionsEnabled: fullCaptionsEnabled,
     speakingReplyId,
