@@ -204,9 +204,9 @@ The report highlights multilingual difficulties, language comprehension issues, 
 
 ### Workshop Artefacts from Activity 1
 
-![Pain points and themes 1](../assets/Insights%20photos/Pain%20points%20and%20themes/IMG_6692.HEIC)
-![Pain points and themes 2](../assets/Insights%20photos/Pain%20points%20and%20themes/IMG_6693.HEIC)
-![Pain points and themes 3](../assets/Insights%20photos/Pain%20points%20and%20themes/IMG_6694.HEIC)
+![Pain points and themes 1](../assets/Insights%20photos/Pain%20points%20and%20themes/IMG_6692.jpg)
+![Pain points and themes 2](../assets/Insights%20photos/Pain%20points%20and%20themes/IMG_6693.jpg)
+![Pain points and themes 3](../assets/Insights%20photos/Pain%20points%20and%20themes/IMG_6694.jpg)
 
 ## 6. Activity 2: Feature Prioritisation Using MoSCoW
 
@@ -259,19 +259,19 @@ The MoSCoW activity affirmed that all features currently in vera are prioritized
 
 #### Prioritized Features Board
 
-![Prioritized features](../assets/Insights%20photos/Prioritized%20features/IMG_6695.HEIC)
+![Prioritized features](../assets/Insights%20photos/Prioritized%20features/IMG_6695.jpg)
 
 #### MoSCoW Boards
 
-![MoSCoW board 1](../assets/Insights%20photos/MOSCOW/IMG_6705.HEIC)
-![MoSCoW board 2](../assets/Insights%20photos/MOSCOW/IMG_6706.HEIC)
-![MoSCoW board 3](../assets/Insights%20photos/MOSCOW/IMG_6707.HEIC)
+![MoSCoW board 1](../assets/Insights%20photos/MOSCOW/IMG_6705.jpg)
+![MoSCoW board 2](../assets/Insights%20photos/MOSCOW/IMG_6706.jpg)
+![MoSCoW board 3](../assets/Insights%20photos/MOSCOW/IMG_6707.jpg)
 
-![MoSCoW board 4](../assets/Insights%20photos/MOSCOW/IMG_6708.HEIC)
-![MoSCoW board 5](../assets/Insights%20photos/MOSCOW/IMG_6709.HEIC)
-![MoSCoW must have board](../assets/Insights%20photos/MOSCOW/Must%20have.HEIC)
+![MoSCoW board 4](../assets/Insights%20photos/MOSCOW/IMG_6708.jpg)
+![MoSCoW board 5](../assets/Insights%20photos/MOSCOW/IMG_6709.jpg)
+![MoSCoW must have board](../assets/Insights%20photos/MOSCOW/Must%20have.jpg)
 
-![MoSCoW should have could have board](../assets/Insights%20photos/MOSCOW/Should%20have%20could%20have.HEIC)
+![MoSCoW should have could have board](../assets/Insights%20photos/MOSCOW/Should%20have%20could%20have.jpg)
 
 ## 7. Activity 3: Love, Break, Fix on the vera AI Prototype
 
@@ -294,15 +294,15 @@ Participants found all features in the current version of vera AI helpful. The a
 
 ### Workshop Artefacts from Activity 3
 
-![Love break fix 1](../assets/Insights%20photos/Love%20break%20fix/IMG_6698.HEIC)
-![Love break fix 2](../assets/Insights%20photos/Love%20break%20fix/IMG_6699.HEIC)
-![Love break fix 3](../assets/Insights%20photos/Love%20break%20fix/IMG_6700.HEIC)
+![Love break fix 1](../assets/Insights%20photos/Love%20break%20fix/IMG_6698.jpg)
+![Love break fix 2](../assets/Insights%20photos/Love%20break%20fix/IMG_6699.jpg)
+![Love break fix 3](../assets/Insights%20photos/Love%20break%20fix/IMG_6700.jpg)
 
-![Love break fix 4](../assets/Insights%20photos/Love%20break%20fix/IMG_6701.HEIC)
-![Love break fix 5](../assets/Insights%20photos/Love%20break%20fix/IMG_6702.HEIC)
-![Love break fix 6](../assets/Insights%20photos/Love%20break%20fix/IMG_6703.HEIC)
+![Love break fix 4](../assets/Insights%20photos/Love%20break%20fix/IMG_6701.jpg)
+![Love break fix 5](../assets/Insights%20photos/Love%20break%20fix/IMG_6702.jpg)
+![Love break fix 6](../assets/Insights%20photos/Love%20break%20fix/IMG_6703.jpg)
 
-![Love break fix 7](../assets/Insights%20photos/Love%20break%20fix/IMG_6704.HEIC)
+![Love break fix 7](../assets/Insights%20photos/Love%20break%20fix/IMG_6704.jpg)
 
 ## 8. Consolidated Insights Across Both Source Documents
 
