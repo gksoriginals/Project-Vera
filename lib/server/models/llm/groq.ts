@@ -42,17 +42,20 @@ export class GroqStructuredLlm implements StructuredLlm {
       response_format: { type: "json_object" }
     });
 
-    let content = typeof response.content === "string" ? response.content : JSON.stringify(response.content);
+    const content = typeof response.content === "string" ? response.content : JSON.stringify(response.content);
     console.log(`[Groq] Received content:`, content);
 
     try {
       const parsed = JSON.parse(content);
       
       // Self-healing: flatten any accidental objects to strings (common in small models, GPT-4o shouldn't need it but good to have)
-      const heal = (v: any): any => {
-        if (Array.isArray(v)) return v.map(i => (typeof i === 'object' && i?.type ? i.type : heal(i)));
+      const heal = (v: unknown): unknown => {
+        if (Array.isArray(v)) return v.map(i => {
+          const item = i as Record<string, unknown>;
+          return typeof item === 'object' && item && 'type' in item ? item.type : heal(i);
+        });
         if (typeof v === 'object' && v !== null) {
-          return Object.fromEntries(Object.entries(v).map(([k, val]) => [k, heal(val)]));
+          return Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, val]) => [k, heal(val)]));
         }
         return v;
       };

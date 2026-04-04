@@ -24,10 +24,10 @@ export async function POST(request: NextRequest) {
         "Cache-Control": "no-store"
       }
     });
-  } catch (error: any) {
-    console.error("[TTS API Error]", error?.message || error);
+  } catch (error: unknown) {
+    console.error("[TTS API Error]", (error as Error)?.message || error);
     return NextResponse.json(
-      { error: error?.message || "Speech synthesis failed" },
+      { error: (error as Error)?.message || "Speech synthesis failed" },
       { status: 500 }
     );
   }

@@ -97,6 +97,15 @@ function isPretextVisuallyPressured(metrics: LiveSurfaceMetrics) {
   );
 }
 
+function getPretextPaceMultiplier(metrics: LiveSurfaceMetrics) {
+  const occupancyFactor = Math.max(0, metrics.occupancy) * 0.35;
+  const lineFactor = Math.max(0, metrics.lineCount - 2) * 0.08;
+  const constrainedFactor =
+    metrics.isOverflowing || metrics.isAtMinimumFontSize ? 0.2 : 0;
+
+  return Math.min(1.65, 1 + occupancyFactor + lineFactor + constrainedFactor);
+}
+
 async function playAudioBlob(blob: Blob) {
   const url = URL.createObjectURL(blob);
 
@@ -186,6 +195,7 @@ export function useLiveConversation(): LiveConversationViewModel {
   const [isMicrophoneSupported, setIsMicrophoneSupported] = useState(true);
   const keyboardInputRef = useRef<HTMLInputElement | null>(null);
   const roomRef = useRef<Room | null>(null);
+  const pendingRoomRef = useRef<Room | null>(null);
   const remoteAudioElementRef = useRef<HTMLAudioElement | null>(null);
   const historyRef = useRef<ConversationChunk[]>([]);
   const preferencesRef = useRef<UserPreferences>(DEFAULT_PREFERENCES);
@@ -204,7 +214,8 @@ export function useLiveConversation(): LiveConversationViewModel {
   const pendingFlushEpochRef = useRef(0);
   const flushEpochRef = useRef(0);
   const recentWordMetricsRef = useRef<{ timestamp: number; wordCount: number }[]>([]);
-  const semanticPaceMultiplierRef = useRef(1.0);
+  const connectAttemptRef = useRef(0);
+  const isConnectingRef = useRef(false);
 
   const latestChunk = history.at(-1);
   const previousChunk = history.length > 1 ? history[history.length - 2] : null;
@@ -281,7 +292,16 @@ export function useLiveConversation(): LiveConversationViewModel {
         window.clearTimeout(silenceFlushTimeoutRef.current);
       }
 
-      void roomRef.current?.disconnect();
+      connectAttemptRef.current += 1;
+      isConnectingRef.current = false;
+      const room = roomRef.current;
+      const pendingRoom = pendingRoomRef.current;
+      roomRef.current = null;
+      pendingRoomRef.current = null;
+      void room?.disconnect();
+      if (pendingRoom && pendingRoom !== room) {
+        void pendingRoom.disconnect();
+      }
       remoteAudioElementRef.current?.remove();
     };
   }, []);
@@ -336,10 +356,6 @@ export function useLiveConversation(): LiveConversationViewModel {
 
       liveTranscriptBufferRef.current = processed.pendingTranscript;
       setVisibleActiveWords(processed.pendingTranscript);
-
-      if (processed.complexityScore !== undefined) {
-        semanticPaceMultiplierRef.current = 1.0 + processed.complexityScore * 0.6;
-      }
 
       if (processed.shouldCommit && processed.chunk) {
         setHistory((previous) => [...previous, processed.chunk!]);
@@ -528,8 +544,7 @@ export function useLiveConversation(): LiveConversationViewModel {
     // Calculate base delay: map pace 0-100 to 50ms-240ms delay
     const baseDelay = 50 + (automatedPace / 100) * (240 - 50);
 
-    // Apply semantic multiplier (based on LLM evaluation of previous content)
-    const delay = baseDelay * semanticPaceMultiplierRef.current;
+    const delay = baseDelay * getPretextPaceMultiplier(liveSurfaceMetricsRef.current);
 
     await animateWords(baseText, finalizedText, delay, (text) => {
       setVisibleActiveWords(text);
@@ -565,7 +580,15 @@ export function useLiveConversation(): LiveConversationViewModel {
       return;
     }
 
+    if (isConnectingRef.current || roomRef.current) {
+      return;
+    }
+
+    const attempt = connectAttemptRef.current + 1;
+
     try {
+      connectAttemptRef.current = attempt;
+      isConnectingRef.current = true;
       flushEpochRef.current += 1;
       clearScheduledFlush();
       clearSilenceBufferFlush();
@@ -582,7 +605,7 @@ export function useLiveConversation(): LiveConversationViewModel {
       });
       const room = new Room();
 
-      roomRef.current = room;
+      pendingRoomRef.current = room;
       acceptingTranscriptionsRef.current = true;
       liveKitSegmentsRef.current.clear();
       finalizedSegmentIdsRef.current.clear();
@@ -614,6 +637,14 @@ export function useLiveConversation(): LiveConversationViewModel {
       });
 
       await room.connect(session.server_url, session.participant_token);
+
+      if (connectAttemptRef.current !== attempt) {
+        await room.disconnect().catch(() => undefined);
+        return;
+      }
+
+      pendingRoomRef.current = null;
+      roomRef.current = room;
       await room.startAudio();
       await room.localParticipant.setMicrophoneEnabled(true);
 
@@ -623,20 +654,36 @@ export function useLiveConversation(): LiveConversationViewModel {
       setStatusNote("Connected to LiveKit. Listening for live speech.");
     } catch {
       acceptingTranscriptionsRef.current = false;
-      setConnectionLabel("Permission needed");
-      setStatusNote("Microphone access and a healthy LiveKit connection are required.");
-      await roomRef.current?.disconnect();
-      roomRef.current = null;
+      const room = pendingRoomRef.current;
+      pendingRoomRef.current = null;
+
+      if (roomRef.current === room) {
+        roomRef.current = null;
+      }
+
+      await room?.disconnect().catch(() => undefined);
+
+      if (connectAttemptRef.current === attempt) {
+        setConnectionLabel("Permission needed");
+        setStatusNote("Microphone access and a healthy LiveKit connection are required.");
+      }
     } finally {
-      setIsBusy(false);
+      if (connectAttemptRef.current === attempt) {
+        isConnectingRef.current = false;
+        setIsBusy(false);
+      }
     }
   }
 
   async function stopMicrophone() {
     const room = roomRef.current;
+    const pendingRoom = pendingRoomRef.current;
     const stopEpoch = flushEpochRef.current + 1;
     const pendingSegmentText = collectPendingSegmentText(liveKitSegmentsRef.current);
 
+    connectAttemptRef.current += 1;
+    isConnectingRef.current = false;
+    pendingRoomRef.current = null;
     flushEpochRef.current = stopEpoch;
     acceptingTranscriptionsRef.current = false;
     clearScheduledFlush();
@@ -659,15 +706,20 @@ export function useLiveConversation(): LiveConversationViewModel {
       await room.disconnect();
     }
 
+    if (pendingRoom && pendingRoom !== room) {
+      await pendingRoom.disconnect().catch(() => undefined);
+    }
+
     roomRef.current = null;
     setIsListening(false);
+    setIsBusy(false);
     setConnectionLabel("Ready");
     setStatusNote("Microphone stopped. Flushing the final buffered transcript.");
     await requestBufferedTranscriptFlush(true, stopEpoch);
   }
 
   async function toggleMicrophone() {
-    if (isListening) {
+    if (isListening || isConnectingRef.current) {
       await stopMicrophone();
       return;
     }
@@ -807,6 +859,7 @@ export function useLiveConversation(): LiveConversationViewModel {
     paceValue,
     previousChunk,
     replySuggestions,
+    runningCaptionsEnabled: fullCaptionsEnabled,
     speakingReplyId,
     statusNote,
     totalPages,

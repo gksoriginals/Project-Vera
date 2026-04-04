@@ -16,12 +16,12 @@ export class VeraLiveKitAgent extends voice.Agent {
   #chunkHistory: ConversationChunk[] = [];
   #preferences: UserPreferences;
   #groqApiKey?: string;
-  #room?: any; // To be set via setter or constructor
+  #room?: unknown; // To be set via setter or constructor
 
   private constructor(options: {
     instructions: string;
     preferences: UserPreferences;
-    room?: any;
+    room?: unknown;
   }) {
     super({
       instructions: options.instructions
@@ -32,7 +32,7 @@ export class VeraLiveKitAgent extends voice.Agent {
 
   static async create(options?: {
     preferences?: UserPreferences;
-    room?: any;
+    room?: unknown;
   }) {
     const instructions = await loadPrompt("livekit-agent-system");
 
@@ -59,7 +59,8 @@ export class VeraLiveKitAgent extends voice.Agent {
 
     // Extract ephemeral Groq key from ANY remote participant metadata if available
     try {
-      const room = this.#room;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const room = this.#room as any;
       if (room) {
         for (const p of room.remoteParticipants.values()) {
           const metadataStr = p.metadata;
@@ -72,7 +73,7 @@ export class VeraLiveKitAgent extends voice.Agent {
           }
         }
       }
-    } catch (e) {
+    } catch {
       // Ignore parsing errors
     }
 

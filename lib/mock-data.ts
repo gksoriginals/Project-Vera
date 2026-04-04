@@ -26,9 +26,7 @@ export const MOCK_STANZAS: ConversationChunk[] = [
     original:
       "The clinic moved your appointment to Thursday morning because the earlier slot had a scheduling conflict with the lab team.",
     simplified:
-      "Your appointment moved to Thursday morning because the lab schedule changed.",
-    assistiveAction: "simplify_language",
-    problemTypes: ["dense_language"]
+      "Your appointment moved to Thursday morning because the lab schedule changed."
   },
   {
     id: "chunk-2",
@@ -37,9 +35,7 @@ export const MOCK_STANZAS: ConversationChunk[] = [
     original:
       "If you still want the hearing test on the same day, they can keep it after lunch, but you may need to wait about twenty minutes.",
     simplified:
-      "You can still do the hearing test that day after lunch, with about a twenty minute wait.",
-    assistiveAction: "compress_for_speed",
-    problemTypes: ["too_much_information"]
+      "You can still do the hearing test that day after lunch, with about a twenty minute wait."
   },
   {
     id: "chunk-3",
@@ -48,9 +44,7 @@ export const MOCK_STANZAS: ConversationChunk[] = [
     original:
       "I can text the details to your sister as well, and she can meet you there if that makes travel easier.",
     simplified:
-      "They can text your sister the details, and she can meet you there if that helps.",
-    assistiveAction: "keep_verbatim",
-    problemTypes: ["already_clear"]
+      "They can text your sister the details, and she can meet you there if that helps."
   }
 ];
 

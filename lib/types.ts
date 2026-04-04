@@ -1,19 +1,3 @@
-export type AssistiveAction =
-  | "keep_verbatim"
-  | "clean_transcript"
-  | "simplify_language"
-  | "compress_for_speed"
-  | "attach_explanation"
-  | "repair_low_confidence";
-
-export type ChunkProblemType =
-  | "dense_language"
-  | "filler_noise"
-  | "too_much_information"
-  | "low_confidence"
-  | "mixed_language"
-  | "already_clear";
-
 export type ReadabilityPreference =
   | "Balanced simplification"
   | "Clearer wording"
@@ -33,7 +17,6 @@ export type UserPreferences = {
 export type ReplyOption = {
   id: string;
   text: string;
-  rationale?: string;
   tags: string[];
 };
 
@@ -51,8 +34,6 @@ export type ConversationChunk = {
   timestamp: string;
   original: string;
   simplified: string;
-  assistiveAction?: AssistiveAction;
-  problemTypes?: ChunkProblemType[];
   replySuggestions?: ReplyOption[];
 };
 
@@ -101,7 +82,6 @@ export type ProcessChunkResult = {
   readinessReason: string;
   chunk?: ConversationChunk;
   replySuggestions: ReplyOption[];
-  complexityScore?: number; // 0 (simple) to 1 (extremely complex)
 };
 
 export type RouteInputPayload = {

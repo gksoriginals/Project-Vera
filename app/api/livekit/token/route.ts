@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasLiveKitConfig } from "@/lib/server/livekit";
 import {
   createLiveKitParticipantToken,
   type LiveKitTokenRequest

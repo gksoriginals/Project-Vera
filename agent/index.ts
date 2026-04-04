@@ -13,7 +13,6 @@ import * as openai from "@livekit/agents-plugin-openai";
 import * as silero from "@livekit/agents-plugin-silero";
 import { VeraLiveKitAgent } from "./vera-livekit-agent";
 import { getLiveKitConfig } from "../lib/server/livekit";
-import { getDefaultTts } from "../lib/server/models";
 
 dotenv.config({ path: ".env" });
 
