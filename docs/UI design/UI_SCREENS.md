@@ -150,8 +150,7 @@ flowchart TB
     end
 
     subgraph PAGE0["Live page"]
-      LAST["Latest simplified chunk"]
-      ACTIVE["Active live canvas"]
+      FOCUS["Focused simplified chunk"]
     end
 
     subgraph PAGE1["Swipe-up history pages"]
@@ -169,9 +168,7 @@ flowchart TB
 - session title
 - connection status
 - current language
-- a single icon-only button that switches between `simplified` and `full version`
-- quick access to personalization
-- optional access to session review
+- minimal chrome only
 
 ### Active conversation behavior
 
@@ -180,15 +177,16 @@ This is the most important UI surface.
 The screen should behave as follows:
 
 - default to a simplified caption view
-- provide a single top-level icon button to switch to the `full version`
+- provide a single icon-only control in the bottom action row to switch to the `full-caption` view
 - show only one caption form at a time in the main reading area
-- when full-version mode is active, show the active utterance word by word as speech arrives
-- start with large type for early live words, then reduce type size smoothly as the active utterance occupies more vertical space
-- use deterministic text measurement and line layout so reflow feels stable rather than jittery
+- in simplified mode, show one centered simplified chunk as the focused reading surface
+- in simplified mode, allow the user to reveal that chunk's full text in place
+- when full-caption mode is active, show a simple scrollable transcript surface with the current live running caption inline
+- use deterministic text measurement and line layout for the focused simplified reading surface and the active live-caption region
 - run chunk detection and simplification fully in the background during live rendering
 - reveal older finalized chunks only after the user swipes upward into a separate history page flow
 - show just one prior chunk per history page rather than a scrolling stack
-- use `Pretext` for whichever chunk is currently focused for reading
+- use `Pretext` for the focused simplified reading surface and the active live-caption region, not for the entire full transcript history
 - preserve a calm, nearly full-screen reading surface with minimal chrome
 - keep only subtle system indicators when absolutely necessary, such as connection state
 - avoid extra chips, helper text, banners, empty waiting cards, or explanation blocks in the active reading area
@@ -197,36 +195,36 @@ The screen should behave as follows:
 ### Unified input bar
 
 - anchored at the bottom
-- can show one AI-generated reply bubble directly above the input for the most recently captured chunk
-- that bubble should appear after a short delay once the chunk is captured
+- can show AI-generated reply bubbles only when the latest committed chunk actually invites a response
+- those bubbles should appear only after simplification and reply generation finish
 - tapping a reply bubble should trigger spoken playback immediately
 - accepts typed replies for TTS
 - also accepts typed questions about the current conversation
 - uses the same field for both intents
 - intent routing should be automatic
 
-## 3. Finalized Chunk Stack And Transcript Reveal
+## 3. Focused Chunk And Transcript Reveal
 
 ### Purpose
 
-Allow the user to review prior finalized simplified chunks without disrupting the active live canvas.
+Allow the user to review prior finalized simplified chunks without disrupting the focused live reading surface.
 
 ### Behavior
 
-- the primary live viewport should show the active live canvas and only the most recent finalized chunk
+- the primary live viewport should show one focused simplified chunk at a time
 - older finalized chunks should remain available through separate swipe pages in chronological order
 - reaching older history should require upward swipe navigation rather than scrolling
 - the currently focused finalized chunk should default to simplified text
 - the interface should use the global switch button rather than per-chunk expand controls
-- transcript reveal should happen in place for the focused chunk, not as a separate archive screen
-- when full transcript is shown, that focused chunk should still be laid out at a large readable size using `Pretext`
+- transcript reveal should happen in place for the focused simplified chunk
+- switching into the full-caption mode should show a continuous scrollable transcript view rather than a second card stacked in the same viewport
 - the history experience should feel like app paging, not a decorative chat bubble list or scrolling transcript
 
 ### Contents
 
 - simplified chunk text
 - timestamp or relative order
-- compact `Show Full` affordance for the original transcription chunk
+- compact affordance to reveal the original transcription for the focused chunk
 
 ## 4. Contextual Answer Overlay
 
@@ -331,7 +329,7 @@ The live conversation screen must support these states cleanly:
 - active canvas at large type
 - active canvas compacted to smaller type
 - paragraph boundary detected
-- simplified stanza committed to focused last-chunk slot
+- simplified stanza committed to the focused reading surface
 - user expanding a prior chunk transcript
 - user swiping between live and history pages
 - contextual answer overlay open
@@ -375,7 +373,7 @@ The live conversation screen must support these states cleanly:
 Use this prompt as a starting point in a UI generation workflow:
 
 ```text
-Design a calm, accessibility-first web and mobile interface for a product called Vera, a real-time assistive communication app for deaf and hard-of-hearing users. The main screen should show streaming captions full-screen word by word as speech arrives on a dedicated live canvas. The first words should appear very large, then the type should scale down smoothly as the active utterance consumes more of the screen, with stable measured line wrapping. When a paragraph or stanza is complete and simplification finishes, keep only two chunks on the live page: the most recent finalized simplified chunk on top and the active live transcription beneath it. That finalized chunk should remain large enough to read comfortably, not compressed into a small history card. Older chunk history should not scroll in a feed. Instead, the user should swipe upward into separate app-like history pages, with one prior chunk per page. Each focused finalized chunk should have a compact button to show the full version in place, and both the simplified and full-transcript focused states should use `Pretext`-style measured layout to stay large and readable. Above the bottom input, show AI-generated potential reply bubbles in one horizontal scroll row; tapping a bubble should immediately speak that reply aloud. A single bottom text box should still support both TTS replies and typed questions about the active conversation. An AI agent should route the input intent automatically to either reply playback or contextual search. Search answers must appear in a secondary overlay or sidecar that does not disturb the live transcription surface. Prioritize strong readability, low cognitive load, stable text layout, app-like paging, and minimal chrome. Use normal product UI patterns: simple headers, compact controls, standard inputs, restrained borders, minimal shadows, and straightforward sheets. Avoid generic AI dashboard aesthetics, hero sections, eyebrow labels, decorative copy blocks, glowing cards, oversized rounded corners, pill-heavy controls, floating glass panels, decorative charts, and cool blue dominant palettes. Use a quiet warm light palette, strong contrast, restrained borders, and practical typography. Also design screens for launch and permissions, session review, and personalization settings focused on reading pace goals, density goals, language, visual accessibility, and TTS settings.
+Design a calm, accessibility-first web and mobile interface for a product called Vera, a real-time assistive communication app for deaf and hard-of-hearing users. The default live screen should show one centered simplified caption chunk as the primary reading surface. When the user switches modes with a compact icon-only control in the bottom action row, show a full-caption view with a simple scrollable transcript and the current running caption inline. Use `Pretext`-style measured layout for the focused simplified reading surface and the active running-caption region, but keep past transcript history plain and scrollable. When a paragraph or stanza is complete and simplification finishes, the focused simplified chunk should update without turning the screen into a transcript feed. Older chunk history should not scroll in the live page. Instead, the user should swipe upward into separate app-like history pages, with one prior chunk per page. The focused simplified chunk should offer an in-place way to reveal its original full text. Above the bottom input, show AI-generated reply bubbles only when the latest committed chunk clearly invites a response; tapping a bubble should immediately speak that reply aloud. A single bottom text box should still support both TTS replies and typed questions about the active conversation. An AI agent should route the input intent automatically to either reply playback or contextual search. Search answers must appear in a secondary overlay or sidecar that does not disturb the live reading surface. Prioritize strong readability, low cognitive load, stable text layout, app-like paging, and minimal chrome. Use normal product UI patterns: simple headers, compact controls, standard inputs, restrained borders, minimal shadows, and straightforward sheets. Avoid generic AI dashboard aesthetics, hero sections, eyebrow labels, decorative copy blocks, glowing cards, oversized rounded corners, pill-heavy controls, floating glass panels, decorative charts, and cool blue dominant palettes. Use a quiet warm light palette, strong contrast, restrained borders, and practical typography. Also design screens for launch and permissions, session review, and personalization settings focused on reading pace goals, density goals, language, visual accessibility, and TTS settings.
 ```
 
 ## Implementation Guidance
@@ -384,7 +382,7 @@ If these screens are implemented in code, start with:
 
 - a single live conversation screen
 - a `Pretext`-backed live canvas renderer
-- a focused last-chunk reader plus swipe-only history pages
+- a focused simplified reader plus swipe-only history pages
 - a non-blocking answer overlay
 - a unified bottom input
 - a compact personalization drawer

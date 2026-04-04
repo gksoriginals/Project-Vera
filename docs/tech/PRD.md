@@ -124,10 +124,10 @@ The live surface should use deterministic text measurement and layout so the int
 
 The user can:
 
-- read finalized simplified chunks in the primary reading surface by default,
-- use a compact top-level button to switch to the full version when needed,
+- read one finalized simplified chunk in the primary reading surface by default,
+- use a compact icon control in the bottom action row to switch to the full-caption view when needed,
 - switch back to simplified text without changing the surrounding page structure,
-- see in-progress live speech only when the full-version state is active,
+- see a plain scrollable running-caption view only when the full-caption mode is active,
 - swipe upward into a separate chunk-history page flow rather than scrolling through a feed,
 - type into a single bottom input that supports either reply playback or contextual question answering,
 - receive search answers without interrupting the active reading surface,
@@ -137,16 +137,16 @@ The interface should preserve a sense of conversation flow instead of feeling li
 
 ### 11.1 Assistive decision model
 
-Vera should treat each transcription chunk as a comprehension decision problem.
+Vera should treat each completed chunk as a simplification decision.
 
 For every chunk, the system should determine:
 
-- whether the chunk is already understandable as-is
-- what makes the chunk hard to understand
-- what assistive action will help most without losing meaning
+- whether enough stable language has accumulated to simplify yet
+- how to rewrite the text into clearer, shorter caption language without losing meaning
+- whether the speaker is inviting a response strongly enough to justify quick replies
 - what should be shown immediately versus made available on demand
 
-The goal is not to summarize by default. The goal is to make each chunk understandable for a deaf user in context.
+The goal is not to summarize by default. The goal is to make each chunk faster to read for a deaf or hard-of-hearing user while preserving who did what, what changed, and what action is needed.
 
 ## 12. Core Features
 
@@ -162,41 +162,24 @@ The goal is not to summarize by default. The goal is to make each chunk understa
 
 ### 12.2 Assistive chunk understanding
 
-The system must inspect each transcription chunk and determine what kind of assistive help is needed.
+The system must simplify each finalized chunk into caption language that is easier to read in motion.
 
-Possible chunk problems include:
+The simplification behavior should:
 
-- dense or formal language
-- filler or noise clutter
-- too much information for the current reading pace
-- misleading transcript wording
-- multilingual or mixed-language phrasing
-- difficult terms requiring explanation
-- low-confidence speech recognition
-
-Possible assistive actions include:
-
-- keep verbatim
-- clean transcript
-- simplify language
-- compress for speed
-- highlight key information
-- repair misleading text
-- preserve mixed-language phrasing
-- attach explanation on demand
-- mark low confidence or fall back safely
+- preserve meaning faithfully
+- preserve who-did-what-to-whom
+- keep question structure when a speaker is asking something
+- replace lower-frequency wording with shorter, more common wording when meaning is preserved
+- reduce filler, repetition, false starts, and obvious speech clutter
+- compress more aggressively only when the live surface is visually pressured
+- keep the rewrite close to the original when the original is already clear
 
 ### 12.3 Adaptive caption transformation and caption mode switch
 
-- Generate multiple candidate caption forms from the same utterance.
-- Support at minimum candidates corresponding to:
-  - direct verbatim rendering,
-  - readability simplification,
-  - compressed urgent rendering.
-- Choose the best candidate automatically for the available layout, comprehension context, and user profile.
-- Commit finalized chunks into history with both an original transcript form and a selected simplified form.
+- Generate one primary simplified caption for each committed chunk.
+- Store both the original transcript and the simplified caption for each committed chunk.
 - Default the interface to simplified rendering.
-- Allow a single compact button to switch the interface between the simplified version and the original full version.
+- Allow a single compact icon button to switch the interface between the simplified view and the full-caption view.
 - Avoid mixing both versions in the primary reading surface at the same time.
 
 ### 12.4 Layout-aware readability optimization
@@ -206,7 +189,7 @@ Possible assistive actions include:
 - Prefer captions that preserve meaning while fitting available space.
 - Use layout as a scoring and verification layer in the rendering pipeline.
 - Keep the active reading view focused on one caption mode at a time.
-- Use `Pretext` to size the currently focused chunk, whether simplified or full-transcript, so it remains large enough to read within the available surface.
+- Use `Pretext` to size the simplified reading surface and the active live-caption region, while keeping past full-caption transcript history plain and scrollable.
 - Avoid scroll-dependent layouts in the live experience and prefer discrete swipe transitions between chunk views.
 
 ### 12.5 Visual emphasis
@@ -218,9 +201,8 @@ Possible assistive actions include:
 ### 12.6 Unified response and query input
 
 - Provide a single bottom text input on the live screen.
-- Show one AI-generated potential reply as a lightweight bubble above the input for each captured chunk when reply assistance is available.
-- Reveal that reply suggestion after a short delay once the chunk has been captured.
-- Generate that reply suggestion in parallel with chunk simplification rather than waiting for the full interaction loop to finish.
+- Show AI-generated reply suggestions only when a committed chunk appears to invite a response.
+- Reveal reply suggestions only after simplification has completed and the system has determined a response is actually expected.
 - Let the user tap the reply bubble to immediately play that reply aloud through TTS.
 - Allow the user to type short or incomplete text.
 - Let an intent-routing agent determine whether the input is:
@@ -239,7 +221,7 @@ Possible assistive actions include:
 
 - Save structured conversation sessions.
 - Maintain settled access to prior simplified stanzas during a live session through swipe-only history pages.
-- Keep the live viewport limited to the active utterance and the latest finalized stanza.
+- Keep the live viewport limited to a single focused simplified stanza, while the full-caption mode becomes a separate scrollable running-caption view.
 - Allow the user to reach older history by swiping into dedicated prior-chunk pages.
 - Allow the user to reveal the full transcript for the focused finalized stanza on demand.
 - Allow basic review of prior sessions.
@@ -267,10 +249,10 @@ Possible assistive actions include:
 - The active caption surface should be glanceable and full-screen dominant.
 - Visual hierarchy should make key meaning easy to scan.
 - Simplification should improve understanding, not erase nuance.
-- In-progress streaming text and the latest finalized simplified text may coexist, but older history should live outside the main page and not compete in the main reading area.
+- Older history should live outside the main page and not compete in the main reading area.
 - Dynamic type-size changes should feel smooth and intentional rather than abrupt.
 - The currently focused finalized chunk should remain large enough for comfortable reading.
-- Expanding `Show Full` should preserve a large readable treatment rather than collapsing into transcript-sized body copy.
+- Switching to the full-caption mode should preserve a readable live-caption treatment while keeping past transcript history plain and scrollable.
 
 ### 13.3 Control
 
@@ -440,12 +422,11 @@ Live audio
 
 Initial graph nodes may include:
 
-- `ingest_transcript`
-- `segment_utterance`
-- `detect_paragraph_boundary`
-- `generate_caption_candidates`
-- `score_layout_fit`
-- `select_rendering_strategy`
+- `assess_readiness`
+- `buffer_only`
+- `simplify_chunk`
+- `commit_without_replies`
+- `generate_quick_replies`
 - `render_caption_event`
 - `route_input_intent`
 - `assist_typed_reply`

@@ -179,14 +179,10 @@ current_utterance
 active_stream_text
 current_stanza
 stanza_history
-chunk_problem_types
-assistive_action
-rendering_strategy
-visual_treatment
-caption_candidates
-selected_caption
+live_surface_metrics
+simplified_text
+response_expected
 reply_candidates
-selected_reply
 speaker_context
 latency_metrics
 persist_queue
@@ -198,9 +194,8 @@ error_state
 - `session metadata`: identity, room, language, preferences
 - `conversation state`: recent utterances, speaker context, current turn
 - `live render state`: active stream text, current stanza, swipe history
-- `assistive state`: diagnosed problems, chosen action, confidence
-- `caption state`: strategy, candidates, selected output, render metadata
-- `reply state`: typed draft, rewrite options, chosen reply
+- `simplification state`: buffered transcript, simplified output, response-expected flag
+- `reply state`: typed draft, reply suggestions, chosen reply
 - `query state`: intent, answer overlay payload
 - `telemetry state`: timing, overflow, failure markers
 
@@ -208,22 +203,15 @@ error_state
 
 ```mermaid
 flowchart TD
-    START["START"] --> INGEST["ingest_transcript"]
-    INGEST --> STREAM["emit_streaming_words"]
-    STREAM --> BOUNDARY{"paragraph complete?"}
-    BOUNDARY -->|no| ENDLIVE["END"]
-    BOUNDARY -->|yes| QUALITY{"usable transcript?"}
-    QUALITY -->|no| FALLBACK["fallback_caption"]
-    QUALITY -->|yes| DIAGNOSE["diagnose_chunk"]
-    DIAGNOSE --> ACTION["choose_assistive_action"]
-    ACTION --> STRATEGY["choose_rendering_strategy"]
-    STRATEGY --> CANDIDATES["generate_caption_candidates"]
-    CANDIDATES --> SCORE["score_layout_fit"]
-    SCORE --> SELECT["select_caption"]
-    SELECT --> EMIT["replace_active_surface"]
-    EMIT --> PERSIST["queue_persist_event"]
-    FALLBACK --> EMIT
-    PERSIST --> END["END"]
+    START["START"] --> READY["assess_readiness"]
+    READY -->|not ready| BUFFER["buffer_only"]
+    READY -->|ready| SIMPLIFY["simplify_chunk"]
+    SIMPLIFY --> RESP{"responseExpected?"}
+    RESP -->|no| COMMIT["commit_without_replies"]
+    RESP -->|yes| REPLIES["generate_quick_replies"]
+    BUFFER --> END["END"]
+    COMMIT --> END
+    REPLIES --> END
 ```
 
 ## Unified Input Graph
@@ -253,91 +241,35 @@ Vera should not treat `assistive_simplified` as a single summarization transform
 
 For each chunk, the graph should answer:
 
-1. Is the raw chunk already understandable?
-2. If not, what is the main comprehension problem?
-3. What is the smallest helpful intervention?
+1. Is there enough stable language to simplify yet?
+2. How should the chunk be rewritten into clearer caption language without losing meaning?
+3. Does the speaker appear to be inviting a response now?
 4. What should be shown now versus exposed on demand?
 
-This turns the assistive layer into a policy-driven decision system instead of a generic rewrite step.
+This turns the assistive layer into a policy-driven simplification system instead of a generic rewrite step.
+The default policy should prefer the smallest rewrite that improves understanding while preserving trust.
 
-### Diagnosable chunk problems
+## Simplification Strategy
 
-The graph should be able to classify problems such as:
-
-- dense or formal language
-- filler or noise clutter
-- too much information for current reading pace
-- misleading transcript wording
-- multilingual or mixed-language phrasing
-- difficult terms requiring explanation
-- low-confidence recognition
-
-### Assistive actions
-
-The graph should choose one primary action per chunk, with room for secondary enrichments.
-
-- `keep_verbatim`
-- `clean_transcript`
-- `simplify_language`
-- `compress_for_speed`
-- `highlight_key_info`
-- `repair_misleading_text`
-- `preserve_mixed_language`
-- `attach_explanation`
-- `mark_low_confidence`
-
-The default policy should prefer the smallest intervention that improves understanding while preserving trust.
-
-## Rendering Strategy Model
-
-The architecture should support at least three internal runtime rendering strategies from day one:
-
-- `verbatim`
-  Best when the raw transcript is already sufficiently understandable.
-- `assistive_simplified`
-  Best when readability is the priority and meaning can be preserved in simpler form.
-- `compressed_urgent`
-  Best when space or reading time is limited and the system must preserve only the most important information.
-
-These should be first-class outputs of the graph, not ad hoc prompt styles.
-
-`assistive_simplified` should therefore be understood as an umbrella strategy whose internal behavior depends on the chosen chunk action.
-
-The UI should not require the user to manually switch between these strategies during normal operation. The graph should choose them automatically per chunk based on:
-
-- diagnosed comprehension problems
-- layout fit constraints
-- reading profile
-- visual accessibility needs
-- conversation urgency
-
-The UI should not spend active screen real estate on explaining the chosen strategy during live transcription. Strategy details are implementation concerns unless the user explicitly asks for them.
-
-## Candidate Generation Strategy
-
-To preserve latency, Vera should not run open-ended caption regeneration loops by default.
+To preserve latency, Vera should not run diagnosis-heavy or candidate-heavy regeneration loops by default.
 
 Recommended strategy:
 
-1. detect stanza or paragraph completion
-2. diagnose the chunk
-3. choose an assistive action
-4. choose a rendering strategy and visual treatment
-5. create a small number of candidates aligned to that action
-6. run deterministic fit scoring
-7. select the best candidate
-8. only regenerate if all candidates fail a hard fit threshold
+1. detect a readiness boundary
+2. simplify the chunk into clearer caption language
+3. let the same simplification pass decide whether a response is expected
+4. generate quick replies only when a response is expected
+5. commit the simplified chunk to session history
 
-This aligns with the LiveKit skill guidance to reduce context bloat and unnecessary work during live interaction.
+The simplification prompt should focus on:
 
-### What `generate_caption_candidates` means
+- preserving who-did-what-to-whom
+- keeping questions as questions
+- replacing lower-frequency wording with shorter, more common wording when possible
+- removing filler and repetition
+- compressing more only when visual pressure is high
 
-This node should not blindly summarize text. It should produce a small set of caption options consistent with the chosen action.
-
-Examples:
-
-- if action is `clean_transcript`, candidates should differ mainly in noise removal and chunking
-- if action is `simplify_language`, candidates should differ in reading complexity and density
+This keeps the graph compact and keeps the main path optimized for live interaction.
 - if action is `compress_for_speed`, candidates should differ in how aggressively they preserve only key information
 - if action is `attach_explanation`, the primary caption may stay short while enriched metadata is attached for on-demand expansion
 
@@ -434,14 +366,12 @@ The graph should work like this:
 1. stream words into the active live surface
 2. measure and lay out the active canvas with `Pretext`
 3. detect paragraph completion
-4. diagnose chunk comprehension issues
-5. choose an assistive action
-6. choose a rendering strategy and visual treatment
-7. generate a small set of caption candidates
-8. send those candidates to Pretext for deterministic scoring
-9. replace the focused finalized slot with the selected simplified chunk and size it for reading with `Pretext`
-10. move older history into discrete swipe pages and reopen the active canvas
-11. if the user expands `Show Full`, rerun `Pretext` sizing for the focused full-transcript state
+4. simplify the chunk into clearer caption language
+5. decide whether a reply is actually expected
+6. generate quick replies only when needed
+7. replace the focused simplified reading surface with the committed simplified chunk
+8. move older history into discrete swipe pages
+9. keep the full-caption mode as a plain scrollable transcript with `Pretext` only on the active running-caption region
 
 This keeps the graph policy-driven and keeps Pretext focused on verification and scoring.
 

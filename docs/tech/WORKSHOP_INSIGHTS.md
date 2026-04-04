@@ -157,7 +157,7 @@ Based on the workshop, Vera should prioritize:
 4. assisted replies with multiple rewrite options for TTS
 5. English-first implementation with a multilingual roadmap from the start
 6. multi-speaker awareness in the product roadmap, even if not fully shipped in the first milestone
-7. a compact single-button control that defaults to simplified captions and can switch to the full version when needed
+7. a compact single-button control in the bottom action row that defaults to simplified captions and can switch to the full-caption view when needed
 
 ## Summary
 

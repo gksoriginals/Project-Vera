@@ -17,29 +17,40 @@ screen, while still reacting quickly when the live surface becomes hard to read.
 
 Vera should simplify on **readiness**, not merely on **audio arrival**.
 
-Readiness comes from two signals:
+Readiness comes from three signals:
 
-- semantic stability: we likely have a complete or near-complete thought
-- visual pressure: the current live surface is becoming dense enough that the user
+- semantic pause: we likely have enough stable language to rewrite without guessing
+- thought completion: we likely have a fuller multi-sentence meaning unit
+- visual pressure fallback: the current live surface is becoming dense enough that the user
   needs relief
 
 ## Recommended Trigger Model
 
-### Trigger 1: sentence stability
+### Trigger 1: semantic pause
 
 Simplification is ready when the buffered transcript likely contains a stable
-sentence boundary.
+pause-sized thought.
 
 Signals:
 
 - sentence-ending punctuation such as `.`, `?`, `!`, `:`
-- a transcript that is long enough to be meaningful even if punctuation is missing
-- optional future inputs such as STT confidence or pause timing
+- a transcript that is long enough to preserve meaning
+- optional future inputs such as pause timing
 
-### Trigger 2: visual pressure
+### Trigger 2: thought completion
+
+Simplification is also ready when the buffer contains a larger connected thought,
+often spanning more than one sentence.
+
+Signals:
+
+- two or more connected sentence-like units
+- enough total words to preserve context while still benefiting from compression
+
+### Trigger 3: visual pressure fallback
 
 Simplification is also ready when the active Pretext surface is approaching
-capacity.
+capacity and the buffered text is already substantial enough to rewrite safely.
 
 Signals:
 
@@ -47,7 +58,7 @@ Signals:
 - the layout falling to the minimum allowed font size
 - overflow pressure on the active live region
 
-### Trigger 3: forced flush
+### Trigger 4: forced flush
 
 Simplification should also run when the user stops listening and there is still
 buffered text.
@@ -56,10 +67,11 @@ buffered text.
 
 These values are intentionally heuristic and should be easy to tune:
 
-- sentence-ready minimum: `8` words
-- density-ready minimum: `16` words
+- semantic-pause minimum: `18` words
+- complete-thought minimum: `28` words
+- max buffer: `42` words
 - visual pressure threshold: `0.74`
-- minimum chunk worth flushing on stop: `4` words
+- minimum chunk worth flushing on stop: `8` words
 
 ## Runtime Flow
 
@@ -70,11 +82,13 @@ flowchart TD
     C --> D["Measure visual pressure"]
     D --> E["LangGraph readiness gate"]
     E -->|Not ready| F["Keep buffering and keep live text onscreen"]
-    E -->|Ready| G["Diagnose chunk"]
-    G --> H["Generate caption candidates"]
-    H --> I["Select final simplified caption"]
-    I --> J["Commit chunk to session history"]
-    J --> K["Clear or trim rolling buffer"]
+    E -->|Ready| G["Simplify chunk and decide responseExpected"]
+    G --> H{"response expected?"}
+    H -->|no| I["Commit simplified chunk"]
+    H -->|yes| J["Generate quick replies"]
+    J --> K["Commit simplified chunk with reply suggestions"]
+    I --> L["Clear or trim rolling buffer"]
+    K --> L
 ```
 
 ## Client Responsibilities
@@ -87,26 +101,27 @@ flowchart TD
 ## Server Responsibilities
 
 - evaluate whether the buffered transcript is ready for simplification
-- run the existing diagnosis and candidate-generation graph only when ready
+- run simplification only when ready
+- decide whether a reply is actually expected
+- generate quick replies only for reply-worthy chunks
 - return either:
   - a committed simplified chunk, or
   - a decision to continue buffering
 
 ## LangGraph Changes
 
-Add a new readiness node before the current LLM nodes.
-
-Proposed graph:
+Current graph:
 
 1. `assess_readiness`
 2. conditional edge:
    - `buffer_only`
-   - `diagnose_chunk`
-3. `generate_candidates`
-4. `select_caption`
+   - `simplify_chunk`
+3. conditional edge:
+   - `commit_without_replies`
+   - `generate_quick_replies`
 
-This keeps the readiness decision deterministic and cheap while preserving the
-existing LLM flow for true simplification work.
+This keeps the readiness decision deterministic and cheap while keeping reply
+generation off the hot path for chunks that do not need a response.
 
 ## Client / Server Contract
 

@@ -16,7 +16,7 @@ This brief should be used together with [UI_SCREENS.md](/Users/gopikrishnansasik
 
 Vera is not a generic running-caption viewer.
 
-The UI should begin with a live reading canvas that renders incoming speech word by word as it arrives. The text should start large, then scale down smoothly as the active utterance consumes more of the reading surface. In parallel, chunk detection and simplification happen in the background. When a chunk is complete and the simplified version is ready, the focused live page should keep only two chunks visible at once: the latest finalized simplified chunk above and the active live text below. Older history should move into separate swipe pages.
+The UI should begin with a focused live reading surface that defaults to one simplified chunk at a time. In parallel, chunk detection and simplification happen in the background. When a chunk is complete and the simplified version is ready, the focused live page should update that single simplified reading surface. A separate full-caption mode should show a simple scrollable transcript with the active running caption inline. Older history should move into separate swipe pages.
 
 This interaction should be designed with a `Pretext`-style rendering model in mind:
 
@@ -27,19 +27,18 @@ This interaction should be designed with a `Pretext`-style rendering model in mi
 
 The core interaction model is:
 
-1. the active utterance appears word by word on a dominant live canvas
-2. the first words appear very large and gradually reduce in size as more words occupy the screen
-3. chunk detection and simplification run in the background during the live render
-4. when a chunk is finalized, the live view keeps only two focused reading blocks: the latest simplified chunk on top and the active utterance below
-5. older simplified chunks move into swipe-only history pages
-6. the latest simplified chunk stays large enough to read comfortably
-7. the user can reveal the full transcript for the focused chunk with `Show Full`
-8. that focused full transcript should also be sized by `Pretext` to remain large and readable
+1. the default live page shows one focused simplified chunk as the primary reading surface
+2. chunk detection and simplification run in the background during the live render
+3. the simplified reading surface uses `Pretext`-style measurement so text stays large and stable
+4. the user can reveal the full text for the focused simplified chunk in place
+5. a compact icon control in the bottom action row switches into a full-caption mode
+6. the full-caption mode is a simple scrollable transcript with the active running caption inline
+7. the active running-caption region can still use `Pretext`-style layout, but the past transcript history should remain plain and scrollable
+8. older simplified chunks move into swipe-only history pages
 9. the bottom input can be used either for TTS replies or to ask questions about the conversation
-10. when reply assistance is available, one AI-generated reply bubble should appear above the input for the latest captured chunk after a short delay
-11. that reply suggestion should conceptually be generated in parallel with chunk simplification
-12. tapping the reply bubble should immediately speak it aloud
-13. if the input is classified as a question, the answer appears in a compact overlay without interrupting the live flow
+10. when reply assistance is available, AI-generated reply bubbles should appear only after the system decides the latest chunk actually invites a response
+11. tapping a reply bubble should immediately speak it aloud
+12. if the input is classified as a question, the answer appears in a compact overlay without interrupting the live flow
 
 ## Design Constraints
 
@@ -295,7 +294,7 @@ Show the beginning of a live utterance as words appear on the reading canvas.
 ### Required elements
 
 - compact top utility bar
-- dominant live text canvas
+- dominant focused reading surface
 - very large early-stage type
 - bottom unified input
 
@@ -313,9 +312,8 @@ Show the beginning of a live utterance as words appear on the reading canvas.
     - `AppName`
     - `ConnectionState`
     - `Language`
-    - `SettingsIcon`
   - `ReadingSurface`
-    - `SettledChunkStack`
+    - `FocusedSimplifiedChunk`
     - `ActiveCanvas`
       - `LiveChunkMeta`
       - `LiveWordFlow`
@@ -373,16 +371,15 @@ Show the moment when the live utterance is replaced by the finalized simplified 
 
 - same top utility bar
 - one newly finalized simplified chunk
-- subtle separation between settled history and the new active area
-- compact `Show Full` button
+- compact affordance to reveal the original text in place
 - bottom unified input remains available
 
 ### Behavior represented by this wireframe
 
 - the live word-by-word canvas has just been replaced by the simplified version
-- the latest simplified chunk remains in a large focused reading position
-- older finalized chunks move below the fold into history
-- a fresh active area remains available for the next live utterance
+- the simplified chunk remains in a large focused reading position
+- older finalized chunks move into swipe-only history
+- the screen remains a single focused reading surface rather than a stacked two-section layout
 - this should feel like conversational continuity, not a page swipe
 
 ### Suggested node structure
@@ -390,23 +387,19 @@ Show the moment when the live utterance is replaced by the finalized simplified 
 - `Frame / 04 Simplified Chunk Settles`
   - `TopBar`
   - `ReadingSurface`
-    - `SettledChunkStack`
-      - `ChunkItem`
-        - `ChunkMeta`
-        - `ShowFullButton`
-        - `SimplifiedChunkText`
-    - `ActiveCanvas`
-      - `LiveChunkMeta`
-      - `LiveWordFlow`
+    - `FocusedChunk`
+      - `ChunkMeta`
+      - `RevealOriginalButton`
+      - `SimplifiedChunkText`
   - `BottomInputBar`
 
 ### Notes
 
-- keep `Show Full` small and secondary
+- keep the reveal-original affordance small and secondary
 - do not visually shrink the simplified chunk into a small history row
 - the focused chunk should use `Pretext`-style sizing so it stays large and readable
 - the settled chunk should not look like a message bubble
-- history below the fold should feel like reading history, not chat chrome
+- history should live outside the live page, not below the fold
 
 ## 05 Full Transcript Expand
 
@@ -507,10 +500,10 @@ When this brief is used in Stitch:
 
 - `03 Live Stream Dense` -> `04 Simplified Chunk Settles`
   - automatic when chunk detection and simplification complete
-  - active text is replaced, and the newest simplified chunk stays in focused view while older history moves below the fold
+  - active text is replaced, and the newest simplified chunk stays in focused view while older history moves into swipe pages
 
 - `04 Simplified Chunk Settles` -> `05 Full Transcript Expand`
-  - tap `Show Full`
+  - tap reveal original
 
 - `05 Full Transcript Expand` -> `04 Simplified Chunk Settles`
   - tap back
@@ -532,7 +525,7 @@ Prefer:
 
 - `Live`
 - `English`
-- `Show Full`
+- `Show original`
 - `Start`
 - `Type a reply or ask a question`
 
@@ -591,9 +584,9 @@ The wireframes are correct if:
 - the main screen starts with live word-by-word text on a dominant canvas
 - active type becomes smaller as the current utterance consumes more of the screen
 - finalized chunks replace the active canvas only after chunk detection and simplification
-- the focused viewport shows only the live chunk and the latest finalized chunk
-- older history sits below the fold instead of crowding the main reading area
-- `Show Full` exists only as a chunk-specific reveal
-- the focused simplified and full-transcript chunk states both remain large and readable
+- the focused viewport shows one simplified reading surface at a time
+- older history lives in swipe-only pages instead of crowding the main reading area
+- reveal original exists only as a chunk-specific in-place affordance
+- the focused simplified state remains large and readable, while the full-caption mode stays plain and scrollable except for the active live region
 - the question answer appears as a secondary overlay
 - the interface feels like a calm live reader, not a transcript dashboard or generic chat app
